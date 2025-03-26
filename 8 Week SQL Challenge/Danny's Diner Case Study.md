@@ -5,7 +5,8 @@
 • <i> [Business Use Case](#Business_Use_Case) </i>  
 • <i> [ERD](#ERD) </i>  
 • <i> [Dataset Schema SQL Code](#Dataset_Schema_SQL_Code) </i>  
-• <i> [Questions & Solutions](#Questions_&_Solutions) </i>  
+• <i> [Questions & Solutions](#Questions_&_Solutions) </i> 
+• <i> [Business Recommendations](#Business_Recommendations) </i> 
   
   ---
 ### Business Use Case
@@ -94,7 +95,7 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 ```sql
     SELECT
     	sales.customer_id,
-        	SUM(menu.price) AS total_sales
+	SUM(menu.price) AS total_sales
     FROM
     	sales
     JOIN
@@ -114,7 +115,7 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 | C           | 36          |
 
 • **Response:**
-
+The total amount spent by customer A is $76, customer B is $74 and customer C is $36.
 </ul>
 
 ---
@@ -131,17 +132,17 @@ For each question, I have included a SQL Query Solution, its output, and a brief
     GROUP BY
     	customer_id
     ORDER BY
-    	total_visits DESC;
+    	customer_id ASC;
 ```
 • **Output:**  
 | customer_id | total_visits |
 | ----------- | ------------ |
-| B           | 6            |
 | A           | 4            |
+| B           | 6            |
 | C           | 2            |
   
-• **Response:**  
-
+• **Response:**
+Customer A has visited the restaurant 4 times, customer B has visited 6 times, and customer C has visited 2 times.
 </ul>
 
 ---
@@ -152,23 +153,38 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 • **SQL Query Solution:**
 ```sql
     SELECT
-    	customer_id, COUNT (DISTINCT order_date) as total_visits
+        sales.customer_id, 
+        menu.product_name AS first_purchase
     FROM
-    	sales
+        sales
+    JOIN
+        menu
+    ON
+        sales.product_id = menu.product_id
+    WHERE
+        sales.order_date = (
+            SELECT
+                MIN(order_date)
+            FROM
+                sales s
+            WHERE
+                s.customer_id = sales.customer_id
+        )
     GROUP BY
-    	customer_id
+        sales.customer_id, menu.product_name
     ORDER BY
-    	total_visits DESC;
+        sales.customer_id;
 ```
 • **Output:**  
-| customer_id | total_visits |
-| ----------- | ------------ |
-| B           | 6            |
-| A           | 4            |
-| C           | 2            |
+| customer_id | first_purchase |
+| ----------- | -------------- |
+| A           | curry          |
+| A           | sushi          |
+| B           | curry          |
+| C           | ramen          |
   
-• **Response:**  
-
+• **Response:**
+Customer A purchased 2 items for their first visit, curry and sushi, while customer B purchased curry and customer C purchased ramen for their first visits.
 </ul>
 
 ---
@@ -193,13 +209,13 @@ For each question, I have included a SQL Query Solution, its output, and a brief
     	total_purchases DESC
     LIMIT 1;
 ```
-• **Output:**  
+• **Output:**
 | most_purchased_product | total_purchases |
 | ---------------------- | --------------- |
 | ramen                  | 8               |
   
 • **Response:**  
-
+The most popular item by purchase amount is ramen, being purchased 8 times by all customers combined.
 </ul>
 
 ---
@@ -230,8 +246,8 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 | B           | ramen             |
 | C           | ramen             |
   
-• **Response:**  
-
+• **Response:**
+The most popular item for every distinct customer (A, B, and C) is ramen.
 </ul>
 
 ---
@@ -266,16 +282,18 @@ For each question, I have included a SQL Query Solution, its output, and a brief
             	ORDER BY 
                		 s.order_date ASC
             	LIMIT 1
-        );
+        )
+    ORDER BY
+	sales.customer_id;
 ```
 • **Output:**  
 | customer_id | product_name |
 | ----------- | ------------ |
-| B           | sushi        |
 | A           | ramen        |
+| B           | sushi        |
   
-• **Response:**  
-
+• **Response:**
+After they became members, customer A's first purchase was ramen, while customer B's first purchase was sushi. Customer C is not yet a member.
 </ul>
 
 ---
@@ -318,8 +336,8 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 | A           | curry        |
 | B           | sushi        |
   
-• **Response:**  
-
+• **Response:**
+Just before becoming members, customer A purchased sushi and curry on the same visit, and customer B purchased sushi.
 </ul>
 
 ---
@@ -356,8 +374,8 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 | A           | 2           | 25                 |
 | B           | 3           | 40                 |
   
-• **Response:**  
-
+• **Response:**
+Before becoming members, customer A had purchased 2 items for a total amount spent of $25, while customer B had purchased 3 items for a total amount spent of $40.
 </ul>
 	
 ---
@@ -367,26 +385,24 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 	
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-        	COUNT(sales.product_id) AS total_items,
-        	SUM(menu.price) AS total_amount_spent
+    SELECT 
+        sales.customer_id,
+        SUM(
+            CASE 
+                WHEN menu.product_name = 'sushi' THEN menu.price * 10 * 2
+                ELSE menu.price * 10
+            END
+        ) AS total_points
     FROM 
-    	sales
+        sales
     JOIN 
-    	menu
+        menu
     ON 
-    	sales.product_id = menu.product_id
-    JOIN
-    	members
-    ON 
-    	sales.customer_id = members.customer_id
-    WHERE 
-    	sales.order_date < members.join_date   
+        sales.product_id = menu.product_id
     GROUP BY 
-    	sales.customer_id
+        sales.customer_id
     ORDER BY 
-    	sales.customer_id;
+        sales.customer_id;
 ```
 • **Output:**  
 
@@ -397,8 +413,8 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 | C           | 360          |
 
 
-• **Response:**  
-
+• **Response:**
+If each $1 spent equates to 10 points and sushi has a 2x point multiplier, customer A would have 860 points, customer B would have 940 points, and customer C would have 360 points.
 </ul>
 
 ---
@@ -415,7 +431,7 @@ For each question, I have included a SQL Query Solution, its output, and a brief
             WHEN menu.product_name = 'sushi' THEN menu.price * 20
             WHEN sales.order_date BETWEEN DATE(members.join_date) AND DATE(members.join_date) + INTERVAL '6 days' THEN menu.price * 20
             ELSE menu.price * 10
-        END) AS points_per_order
+        END) AS jan_points
     FROM 
         sales
     JOIN 
@@ -431,14 +447,20 @@ For each question, I have included a SQL Query Solution, its output, and a brief
         sales.customer_id;
 ```
 • **Output:**  
-| customer_id | points_per_order |
-| ----------- | ---------------- |
-| A           | 1020             |
-| B           | 320              |  
+| customer_id | jan_points |
+| ----------- | ---------- |
+| A           | 1020       |
+| B           | 320        |  
   
-• **Response:**  
+• **Response:**
+If in the first week after joining the rewards program all purchases earn the 2x point multiplier, but afterward each $1 spent equates to 10 points and only sushi retains the 2x multiplier, customer A would have accumulated 1,020 points for January whereas customer B would have accumulated 320 points for the month.
 
----
+  ---
+### Business Recommendations
+Write recommendations inferred from data here.
+
+  ---
+
 
 </ul>
 
