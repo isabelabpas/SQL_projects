@@ -89,18 +89,18 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 **1️⃣ What is the total amount each customer spent at the restaurant?**  
 • **SQL Query Solution:**
 ```sql
-  SELECT 
-    	sales.customer_id,
-        SUM(menu.price) AS total_sales
-    FROM 
+SELECT 
+	sales.customer_id,
+	SUM(menu.price) AS total_sales
+FROM 
     	sales
-    JOIN 
+JOIN 
     	menu
-    ON
+ON
     	sales.product_id = menu.product_id
-    GROUP BY
+GROUP BY
     	sales.customer_id
-    ORDER BY
+ORDER BY
     	sales.customer_id ASC;
 ```
 • **Output:**
@@ -117,7 +117,7 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 **2️⃣ How many days has each customer visited the restaurant?**  
 • **SQL Query Solution:**
 ```sql
-  SELECT
+SELECT
 	customer_id, COUNT (DISTINCT order_date) as total_visits
 FROM
 	sales
@@ -134,7 +134,7 @@ ORDER BY
 **3️⃣ What was the first item from the menu purchased by each customer?**  
 • **SQL Query Solution:**
 ```sql
-  SELECT
+SELECT
 	customer_id, COUNT (DISTINCT order_date) as total_visits
 FROM
 	sales
@@ -151,9 +151,9 @@ ORDER BY
 **4️⃣ What is the most purchased item on the menu and how many times was it purchased by all customers?**  
 • **SQL Query Solution:**
 ```sql
-  SELECT
-    menu.product_name AS most_purchased_product,
-    COUNT (sales.order_date) AS total_purchases
+SELECT
+	menu.product_name AS most_purchased_product,
+	COUNT (sales.order_date) AS total_purchases
 FROM
 	sales
 JOIN
@@ -174,19 +174,19 @@ LIMIT 1;
 **5️⃣ Which item was the most popular for each customer?**  
 • **SQL Query Solution:**
 ```sql
-  SELECT DISTINCT ON (sales.customer_id)
-    sales.customer_id,
-    menu.product_name AS customer_favorite
+SELECT DISTINCT ON (sales.customer_id)
+	sales.customer_id,
+	menu.product_name AS customer_favorite
 FROM
-    sales
+	sales
 JOIN
-    menu
+	menu
 ON
-    sales.product_id = menu.product_id
+	sales.product_id = menu.product_id
 GROUP BY
-    sales.customer_id, menu.product_name
+	sales.customer_id, menu.product_name
 ORDER BY
-    sales.customer_id, COUNT(sales.order_date) DESC;
+	sales.customer_id, COUNT(sales.order_date) DESC;
 ```
 • **Output:**  
 • **Response:**  
@@ -196,7 +196,32 @@ ORDER BY
 **6️⃣ Which item was purchased first by the customer after they became a member?**  
 • **SQL Query Solution:**
 ```sql
-  
+SELECT
+	sales.customer_id,
+	menu.product_name
+FROM
+	sales
+JOIN
+	menu
+ON
+	sales.product_id = menu.product_id
+WHERE
+	sales.order_date = (
+		SELECT 
+			s.order_date
+        	FROM 
+            		sales s
+        	JOIN 
+            		members m
+        	ON 
+            		s.customer_id = m.customer_id
+        	WHERE 
+            		s.customer_id = sales.customer_id  -- Outer query's "sales" vs. subquery's "s"
+            		AND s.order_date > m.join_date
+        	ORDER BY 
+           		 s.order_date ASC
+        	LIMIT 1
+    );
 ```
 • **Output:**  
 • **Response:**  
@@ -206,7 +231,31 @@ ORDER BY
 **7️⃣ Which item was purchased just before the customer became a member?**  
 • **SQL Query Solution:**
 ```sql
-  
+SELECT
+	sales.customer_id,
+	menu.product_name
+FROM
+	sales
+JOIN
+	menu
+ON
+	sales.product_id = menu.product_id
+WHERE
+	sales.order_date = (
+		SELECT 
+			MAX(s.order_date)
+        	FROM 
+            		sales s
+        	JOIN 
+            		members m
+        	ON 
+            		s.customer_id = m.customer_id
+        	WHERE 
+            		s.customer_id = sales.customer_id
+            		AND s.order_date < m.join_date
+    )
+ORDER BY
+	customer_id;
 ```
 • **Output:**  
 • **Response:**  
@@ -216,7 +265,26 @@ ORDER BY
 **8️⃣ What is the total items and amount spent for each member before they became a member?**  
 • **SQL Query Solution:**
 ```sql
-  
+SELECT
+	sales.customer_id,
+    	COUNT(sales.product_id) AS total_items,
+    	SUM(menu.price) AS total_amount_spent
+FROM 
+    	sales
+JOIN 
+	menu
+ON 
+    	sales.product_id = menu.product_id
+JOIN 
+    	members
+ON 
+    	sales.customer_id = members.customer_id
+WHERE 
+    	sales.order_date < members.join_date   
+GROUP BY 
+    	sales.customer_id
+ORDER BY 
+    	sales.customer_id;   
 ```
 • **Output:**  
 • **Response:**  
