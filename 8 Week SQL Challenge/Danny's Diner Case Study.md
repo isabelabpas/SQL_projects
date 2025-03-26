@@ -5,7 +5,7 @@
 • <i> [Business Use Case](#Business_Use_Case) </i>  
 • <i> [ERD](#ERD) </i>  
 • <i> [Dataset Schema SQL Code](#Dataset_Schema_SQL_Code) </i>  
-• <i> [Questions & Solutions](#Questions_&_Solutions) </i> 
+• <i> [Questions & Solutions](#Questions_&_Solutions) </i>   
 • <i> [Business Recommendations](#Business_Recommendations) </i> 
   
   ---
