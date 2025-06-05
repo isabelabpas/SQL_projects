@@ -149,28 +149,103 @@ VALUES
 
 ### Questions & Solutions
 
-For each question, I have included a SQL Query Solution, its output, and a brief response to the information requested.    
+For each question, I have included a SQL Query Solution, its output, and a brief response to the information requested.  
+  
+**➡️ Data Cleaning and Manipulation ⬅️**  
+Prior to beginning the analysis and answering any questions, there are two tables that need some work done! Below it can be seen that the first table that needs to be cleaned is the *customer_orders* table:
 
-**➡️ PIZZA METRICS QUESTIONS**  
+<p align="center" width="100%">
+    <img width="100%" src="https://github.com/user-attachments/assets/893f9af0-d1d9-4184-8f3e-36a09030dddf">
+</p>
+  
+From the screenshot, we can see that there are blank spaces as well as null values in both the *exclusions* and the *extras* columns, which needs to be standardized. For that, I created a temporary table from the original *customer_orders* table and replaced any blank or non-standard values in the two aforementioned columns with NULL:
+```sql
+CREATE TEMP TABLE customer_orders_temp AS
+SELECT 
+  order_id, 
+  customer_id, 
+  pizza_id, 
+
+  CASE
+    WHEN exclusions IS NULL OR exclusions ILIKE 'null' OR TRIM(exclusions) = '' THEN NULL
+    ELSE exclusions
+  END AS exclusions,
+
+  CASE
+    WHEN extras IS NULL OR extras ILIKE 'null' OR TRIM(extras) = '' THEN NULL
+    ELSE extras
+  END AS extras,
+
+  order_time
+
+FROM pizza_runner.customer_orders;
+```
+The second table that needs to be cleaned is the *runner_orders* table. It displays the same issue as the previous table, with blank spaces and null values in the same column, which were all replaced with NULL for standardization. On that table, the data types in the *pickup_time*, *distance*, and *duration* columns must also be altered:
+
+
+<p align="center" width="100%">
+    <img width="100%" src="https://github.com/user-attachments/assets/8722e1c2-fd3e-4ad4-a629-80ec9267bc38">
+</p>
+
+For that, a similar approach was used:
+```sql
+CREATE TEMP TABLE runner_orders_temp AS
+SELECT 
+  order_id, 
+  runner_id,  
+
+  CASE
+    WHEN pickup_time ILIKE 'null' OR TRIM(pickup_time) = '' THEN NULL
+    ELSE pickup_time
+  END AS pickup_time,
+
+  CASE
+    WHEN distance ILIKE 'null' OR TRIM(distance) = '' THEN NULL
+    WHEN distance LIKE '%km%' THEN TRIM(REPLACE(distance, 'km', ''))
+    ELSE distance
+  END AS distance,
+
+  CASE
+    WHEN duration ILIKE 'null' OR TRIM(duration) = '' THEN NULL
+    WHEN duration LIKE '%minutes%' THEN TRIM(REPLACE(duration, 'minutes', ''))
+    WHEN duration LIKE '%minute' THEN TRIM(REPLACE(duration, 'minute', ''))
+    WHEN duration LIKE '%mins' THEN TRIM(REPLACE(duration, 'mins', ''))
+    ELSE duration
+  END AS duration,
+
+  CASE
+    WHEN cancellation ILIKE 'null' OR TRIM(cancellation) = '' THEN NULL
+    ELSE cancellation
+  END AS cancellation
+
+FROM pizza_runner.runner_orders;
+```
+These temp tables will be used for the queries answering the case questions.
+
+  ---
+  
+**➡️ Pizza Metrics Questions ⬅️**  
   
 **1️⃣ How many pizzas were ordered?**  
 <ul>
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-	SUM(menu.price) AS total_sales
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id
-    ORDER BY
-    	sales.customer_id ASC;
+CREATE TEMP TABLE customer_orders_temp AS
+SELECT 
+  order_id, 
+  customer_id, 
+  pizza_id, 
+  CASE
+	  WHEN exclusions IS null OR exclusions LIKE 'null' THEN ' '
+	  ELSE exclusions
+	  END AS exclusions,
+  CASE
+	  WHEN extras IS NULL or extras LIKE 'null' THEN ' '
+	  ELSE extras
+	  END AS extras,
+	order_time
+FROM pizza_runner.customer_orders;
 ```
 • **Output:**
 
@@ -485,7 +560,7 @@ A.
 
 ---
   
-**➡️ RUNNER AND CUSTOMER EXPERIENCE**  
+**➡️ Runner and Customer Experience ⬅️**  
   
 **1️⃣ How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)**  
 <ul>
@@ -715,7 +790,7 @@ A.
 
 ---
 
-**➡️ INGREDIENT OPTIMIZATION**  
+**➡️ Ingredient Optimization ⬅️**  
   
 **1️⃣ What are the standard ingredients for each pizza?**  
 <ul>
@@ -909,7 +984,7 @@ A.
 
 ---
 
-**➡️ PRICING AND RATINGS**  
+**➡️ Pricing and Ratings ⬅️**  
   
 **1️⃣ If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?**  
 <ul>
