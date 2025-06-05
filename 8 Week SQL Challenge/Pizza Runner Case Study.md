@@ -231,27 +231,18 @@ These temp tables will be used for the queries answering the case questions.
 
 • **SQL Query Solution:**
 ```sql
-CREATE TEMP TABLE customer_orders_temp AS
-SELECT 
-  order_id, 
-  customer_id, 
-  pizza_id, 
-  CASE
-	  WHEN exclusions IS null OR exclusions LIKE 'null' THEN ' '
-	  ELSE exclusions
-	  END AS exclusions,
-  CASE
-	  WHEN extras IS NULL or extras LIKE 'null' THEN ' '
-	  ELSE extras
-	  END AS extras,
-	order_time
-FROM pizza_runner.customer_orders;
+SELECT COUNT(*) AS total_pizzas_ordered
+FROM customer_orders_temp;
 ```
 • **Output:**
 
+| total_pizzas_ordered |
+| -------------------- |
+| 14                   |
+
 
 • **Response:**
-A.
+14 pizzas were ordered in total.
 </ul>
 
 ---
@@ -261,20 +252,16 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	customer_id, COUNT (DISTINCT order_date) as total_visits
-    FROM
-    	sales
-    GROUP BY
-    	customer_id
-    ORDER BY
-    	customer_id ASC;
+SELECT COUNT(DISTINCT order_id)
+FROM customer_orders_temp;
 ```
 • **Output:**  
-
+| count |
+| ----- |
+| 10    |
   
 • **Response:**
-A.
+10 unique customer orders were made.
 </ul>
 
 ---
@@ -284,34 +271,20 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-        sales.customer_id, 
-        menu.product_name AS first_purchase
-    FROM
-        sales
-    JOIN
-        menu
-    ON
-        sales.product_id = menu.product_id
-    WHERE
-        sales.order_date = (
-            SELECT
-                MIN(order_date)
-            FROM
-                sales s
-            WHERE
-                s.customer_id = sales.customer_id
-        )
-    GROUP BY
-        sales.customer_id, menu.product_name
-    ORDER BY
-        sales.customer_id;
+SELECT runner_id, COUNT(order_id) AS successful_orders
+FROM runner_orders_temp
+WHERE cancellation IS NULL
+GROUP BY runner_id;
 ```
 • **Output:**  
-
+| runner_id | successful_orders |
+| --------- | ----------------- |
+| 1         | 4                 |
+| 2         | 3                 |
+| 3         | 1                 |
   
 • **Response:**
-A.
+4 orders were successfully completed by runner_id 1, 3 orders by runner_id 2, and 1 order by runner_id 3.
 </ul>
 
 ---
@@ -321,26 +294,21 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	menu.product_name AS most_purchased_product,
-    	COUNT (sales.order_date) AS total_purchases
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	menu.product_name
-    ORDER BY
-    	total_purchases DESC
-    LIMIT 1;
+SELECT pizza_names.pizza_name, COUNT(customer_orders_temp.pizza_id) AS pizzas_delivered
+FROM customer_orders_temp
+JOIN pizza_names ON pizza_names.pizza_id = customer_orders_temp.pizza_id
+JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+WHERE runner_orders_temp.cancellation IS NULL
+GROUP BY pizza_names.pizza_name;
 ```
 • **Output:**
-
+| pizza_name | pizzas_delivered |
+| ---------- | ---------------- |
+| Meatlovers | 9                |
+| Vegetarian | 3                |
   
 • **Response:**  
-A.
+There were 9 meatlovers pizzas delivered, and 3 vegetarian pizzas.
 </ul>
 
 ---
@@ -350,25 +318,27 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT DISTINCT ON (sales.customer_id)
-    	sales.customer_id,
-    	menu.product_name AS customer_favorite
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id, menu.product_name
-    ORDER BY
-    	sales.customer_id, COUNT(sales.order_date) DESC;
+SELECT customer_orders_temp.customer_id, pizza_names.pizza_name, COUNT(customer_orders_temp.pizza_id) AS pizzas_ordered
+FROM customer_orders_temp
+JOIN pizza_names ON pizza_names.pizza_id = customer_orders_temp.pizza_id
+JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+GROUP BY customer_orders_temp.customer_id,pizza_names.pizza_name
+ORDER BY customer_orders_temp.customer_id ASC;
 ```
 • **Output:**  
-
+| customer_id | pizza_name | pizzas_ordered |
+| ----------- | ---------- | -------------- |
+| 101         | Meatlovers | 2              |
+| 101         | Vegetarian | 1              |
+| 102         | Meatlovers | 2              |
+| 102         | Vegetarian | 1              |
+| 103         | Meatlovers | 3              |
+| 103         | Vegetarian | 1              |
+| 104         | Meatlovers | 3              |
+| 105         | Vegetarian | 1              |
   
 • **Response:**
-A.
+Customer_id 101 ordered 2 meatlovers pizzas and 1 vegetarian; customer_id 102 ordered 2 meatlovers pizzas and 1 vegeratian; customer_id 103 ordered 3 meatlovers pizzas and 1 vegeratian; customer_id 104 ordered 3 meatlovers pizzas; and customer_id 105 ordered 1 vegetarian pizza.
 </ul>
 
 ---
