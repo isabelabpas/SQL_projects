@@ -348,40 +348,21 @@ Customer_id 101 ordered 2 meatlovers pizzas and 1 vegetarian; customer_id 102 or
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-    	menu.product_name
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    WHERE
-    	sales.order_date = (
-    		SELECT 
-    			s.order_date
-            	FROM 
-                		sales s
-            	JOIN 
-                		members m
-            	ON 
-                		s.customer_id = m.customer_id
-            	WHERE 
-                		s.customer_id = sales.customer_id  -- Outer query's "sales" vs. subquery's "s"
-                		AND s.order_date > m.join_date
-            	ORDER BY 
-               		 s.order_date ASC
-            	LIMIT 1
-        )
-    ORDER BY
-	sales.customer_id;
+SELECT customer_orders_temp.order_id, COUNT(customer_orders_temp.pizza_id) AS pizza_count
+FROM customer_orders_temp
+JOIN runner_orders_temp ON customer_orders_temp.order_id=runner_orders_temp.order_id
+WHERE runner_orders_temp.cancellation IS NULL
+GROUP BY customer_orders_temp.order_id
+ORDER BY pizza_count DESC
+LIMIT 1;
 ```
 • **Output:**  
-
+| order_id | pizza_count |
+| -------- | ----------- |
+| 4        | 3           |
   
 • **Response:**
-A.
+The maximum number if pizzas in a single order was 3 pizzas.
 </ul>
 
 ---
@@ -391,37 +372,31 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-    	menu.product_name
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    WHERE
-    	sales.order_date = (
-    		SELECT 
-    			MAX(s.order_date)
-            	FROM 
-                		sales s
-            	JOIN 
-                		members m
-            	ON 
-                		s.customer_id = m.customer_id
-            	WHERE 
-                		s.customer_id = sales.customer_id
-                		AND s.order_date < m.join_date
-        )
-    ORDER BY
-    	customer_id;
+SELECT customer_orders_temp.customer_id,
+COUNT(CASE 
+    WHEN customer_orders_temp.exclusions IS NOT NULL 
+      OR customer_orders_temp.extras IS NOT NULL 
+    THEN 1 END) AS changed_pizzas,
+COUNT(CASE 
+    WHEN customer_orders_temp.exclusions IS NULL 
+      AND customer_orders_temp.extras IS NULL 
+    THEN 1 END) AS no_change_pizzas
+FROM customer_orders_temp
+JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+WHERE runner_orders_temp.cancellation IS NULL
+GROUP BY customer_orders_temp.customer_id;
 ```
 • **Output:**  
-
+| customer_id | changed_pizzas | no_change_pizzas |
+| ----------- | -------------- | ---------------- |
+| 101         | 0              | 2                |
+| 102         | 0              | 3                |
+| 103         | 3              | 0                |
+| 104         | 2              | 1                |
+| 105         | 1              | 0                |
   
 • **Response:**
-A.
+Customer_id 1 had 0 changed pizzas and 2 unchanged pizzas; 102 had 0 changed pizzas and 3 unchanged pizzas; 103 had 3 changed pizzas and 0 unchanged pizzas; 104 had 2 changed pizzas and 1 unchanged pizza; and 105 had 1 changed pizza and 0 unchanged pizzas.
 </ul>
 
 ---
@@ -431,32 +406,20 @@ A.
 	
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-        	COUNT(sales.product_id) AS total_items,
-        	SUM(menu.price) AS total_amount_spent
-    FROM 
-    	sales
-    JOIN 
-    	menu
-    ON 
-    	sales.product_id = menu.product_id
-    JOIN
-    	members
-    ON 
-    	sales.customer_id = members.customer_id
-    WHERE 
-    	sales.order_date < members.join_date   
-    GROUP BY 
-    	sales.customer_id
-    ORDER BY 
-    	sales.customer_id;
+SELECT COUNT(*) AS pizzas_with_both
+FROM customer_orders_temp
+JOIN runner_orders_temp ON runner_orders_temp.order_id = customer_orders_temp.order_id                                     
+WHERE runner_orders_temp.cancellation IS NULL
+AND customer_orders_temp.exclusions IS NOT NULL
+AND customer_orders_temp.extras IS NOT NULL;
 ```
 • **Output:**  
-
+| pizzas_with_both |
+| ---------------- |
+| 1                |
   
 • **Response:**
-A.
+Only one delivered pizza had both exclusions and extras.
 </ul>
 	
 ---
@@ -466,30 +429,23 @@ A.
 	
 • **SQL Query Solution:**
 ```sql
-    SELECT 
-        sales.customer_id,
-        SUM(
-            CASE 
-                WHEN menu.product_name = 'sushi' THEN menu.price * 10 * 2
-                ELSE menu.price * 10
-            END
-        ) AS total_points
-    FROM 
-        sales
-    JOIN 
-        menu
-    ON 
-        sales.product_id = menu.product_id
-    GROUP BY 
-        sales.customer_id
-    ORDER BY 
-        sales.customer_id;
+SELECT EXTRACT(HOUR FROM order_time) AS order_hour, COUNT(pizza_id) AS pizza_volume
+FROM customer_orders_temp
+GROUP BY order_hour
+ORDER BY order_hour;
 ```
 • **Output:**  
-
+| order_hour | pizza_volume |
+| ---------- | ------------ |
+| 11         | 1            |
+| 13         | 3            |
+| 18         | 3            |
+| 19         | 1            |
+| 21         | 3            |
+| 23         | 3            |
 
 • **Response:**
-A.
+1 pizza was ordered at 11am; 3 pizzas at 1pm; 3 pizzas at 6pm; 1 pizza at 7pm; 3 pizzas at 9pm; and 3 pizzas at 11pm.
 </ul>
 
 ---
@@ -499,33 +455,21 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT 
-        sales.customer_id,
-        SUM(
-        CASE
-            WHEN menu.product_name = 'sushi' THEN menu.price * 20
-            WHEN sales.order_date BETWEEN DATE(members.join_date) AND DATE(members.join_date) + INTERVAL '6 days' THEN menu.price * 20
-            ELSE menu.price * 10
-        END) AS jan_points
-    FROM 
-        sales
-    JOIN 
-        menu ON sales.product_id = menu.product_id
-    JOIN
-        members ON sales.customer_id = members.customer_id
-    WHERE 
-        sales.order_date <= '2021-01-31'
-        AND sales.order_date >= members.join_date
-    GROUP BY
-    	sales.customer_id
-    ORDER BY 
-        sales.customer_id;
+SELECT TO_CHAR(order_time, 'Day') AS weekday, COUNT(order_id) AS order_volume
+FROM customer_orders_temp
+GROUP BY weekday, EXTRACT(DOW FROM order_time)
+ORDER BY EXTRACT(DOW FROM order_time);
 ```
 • **Output:**  
-
+| weekday   | order_volume |
+| --------- | ------------ |
+| Wednesday | 5            |
+| Thursday  | 3            |
+| Friday    | 1            |
+| Saturday  | 5            |
   
 • **Response:**
-A.  
+On Wednesdays, there were 5 orders; on Thursdays, there were 3 orders; on Fridays, there was 1 order; and on Saturdays there were 5 orders.  
 </ul>  
 
 ---
@@ -537,25 +481,20 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-	SUM(menu.price) AS total_sales
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id
-    ORDER BY
-    	sales.customer_id ASC;
+SELECT DATE_TRUNC('week', registration_date - INTERVAL '4 days') + INTERVAL '4 days' AS week_start, COUNT(runner_id) as runners_signup
+FROM runners
+GROUP BY week_start
+ORDER BY week_start;
 ```
 • **Output:**
-
+| week_start          | runners_signup |
+| ------------------- | -------------- |
+| 2021-01-01 00:00:00 | 2              |
+| 2021-01-08 00:00:00 | 1              |
+| 2021-01-15 00:00:00 | 1              |
 
 • **Response:**
-A.
+On week 1, starting 2021-01-01, 2 runners signed up; on week 2, 1 runner signed up; on week 3, 1 runner signed up.
 </ul>
 
 ---
@@ -565,20 +504,21 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	customer_id, COUNT (DISTINCT order_date) as total_visits
-    FROM
-    	sales
-    GROUP BY
-    	customer_id
-    ORDER BY
-    	customer_id ASC;
+SELECT runner_orders_temp.runner_id, AVG(EXTRACT(EPOCH FROM (CAST(runner_orders_temp.pickup_time AS TIMESTAMP) - customer_orders_temp.order_time)) / 60) AS avg_time_to_pickup_mins
+FROM customer_orders_temp
+JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+WHERE runner_orders_temp.cancellation IS NULL
+GROUP BY runner_orders_temp.runner_id;
 ```
 • **Output:**  
-
+| runner_id | avg_time_to_pickup_mins |
+| --------- | ----------------------- |
+| 1         | 15.677777777777777      |
+| 2         | 23.720000000000002      |
+| 3         | 10.466666666666667      |
   
 • **Response:**
-A.
+Runner 1 takes an average of 15.7 minutes for pick up; runner 2 has an average of 23.7 minutes until pick up; and runner 3 has an average of 10.5 minutes until pick up.
 </ul>
 
 ---
@@ -588,34 +528,26 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-        sales.customer_id, 
-        menu.product_name AS first_purchase
-    FROM
-        sales
-    JOIN
-        menu
-    ON
-        sales.product_id = menu.product_id
-    WHERE
-        sales.order_date = (
-            SELECT
-                MIN(order_date)
-            FROM
-                sales s
-            WHERE
-                s.customer_id = sales.customer_id
-        )
-    GROUP BY
-        sales.customer_id, menu.product_name
-    ORDER BY
-        sales.customer_id;
+SELECT num_pizzas_in_order, ROUND(AVG(time_to_pickup_mins)::NUMERIC, 2) AS avg_pickup_time
+FROM
+	(SELECT customer_orders_temp.order_id, COUNT(customer_orders_temp.pizza_id) AS num_pizzas_in_order,EXTRACT(EPOCH FROM (CAST(runner_orders_temp.pickup_time AS TIMESTAMP) - customer_orders_temp.order_time)) / 60 AS time_to_pickup_mins
+	FROM customer_orders_temp
+	JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+	WHERE runner_orders_temp.cancellation IS NULL
+	GROUP BY customer_orders_temp.order_id, runner_orders_temp.pickup_time, customer_orders_temp.order_time
+	) sub
+GROUP BY num_pizzas_in_order
+ORDER BY num_pizzas_in_order;
 ```
 • **Output:**  
-
+| num_pizzas_in_order | avg_pickup_time |
+| ------------------- | --------------- |
+| 1                   | 12.36           |
+| 2                   | 18.38           |
+| 3                   | 29.28           |
   
 • **Response:**
-A.
+Yes, there is a positive relationship between the number of pizzas in an order and how long it takes to prepare.
 </ul>
 
 ---
