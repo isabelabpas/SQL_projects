@@ -196,22 +196,22 @@ SELECT
 
   CASE
     WHEN pickup_time ILIKE 'null' OR TRIM(pickup_time) = '' THEN NULL
-    ELSE pickup_time
+    ELSE CAST(pickup_time AS TIMESTAMP)
   END AS pickup_time,
 
   CASE
     WHEN distance ILIKE 'null' OR TRIM(distance) = '' THEN NULL
-    WHEN distance LIKE '%km%' THEN TRIM(REPLACE(distance, 'km', ''))
-    ELSE distance
-  END AS distance,
+    WHEN distance LIKE '%km%' THEN CAST(REPLACE(REPLACE(distance, 'km', ''), ' ', '') AS FLOAT)
+    ELSE CAST(distance AS FLOAT)
+  END AS distance_km,
 
   CASE
     WHEN duration ILIKE 'null' OR TRIM(duration) = '' THEN NULL
-    WHEN duration LIKE '%minutes%' THEN TRIM(REPLACE(duration, 'minutes', ''))
-    WHEN duration LIKE '%minute' THEN TRIM(REPLACE(duration, 'minute', ''))
-    WHEN duration LIKE '%mins' THEN TRIM(REPLACE(duration, 'mins', ''))
-    ELSE duration
-  END AS duration,
+    WHEN duration LIKE '%minutes%' THEN CAST(TRIM(REPLACE(duration, 'minutes', '')) AS INTEGER)
+    WHEN duration LIKE '%minute' THEN CAST(TRIM(REPLACE(duration, 'minute', '')) AS INTEGER)
+    WHEN duration LIKE '%mins' THEN CAST(TRIM(REPLACE(duration, 'mins', '')) AS INTEGER)
+    ELSE CAST(duration AS INTEGER)
+  END AS duration_mins,
 
   CASE
     WHEN cancellation ILIKE 'null' OR TRIM(cancellation) = '' THEN NULL
@@ -504,7 +504,7 @@ On week 1, starting 2021-01-01, 2 runners signed up; on week 2, 1 runner signed 
 
 • **SQL Query Solution:**
 ```sql
-SELECT runner_orders_temp.runner_id, AVG(EXTRACT(EPOCH FROM (CAST(runner_orders_temp.pickup_time AS TIMESTAMP) - customer_orders_temp.order_time)) / 60) AS avg_time_to_pickup_mins
+SELECT runner_orders_temp.runner_id, AVG(EXTRACT(EPOCH FROM (runner_orders_temp.pickup_time - customer_orders_temp.order_time)) / 60) AS avg_time_to_pickup_mins
 FROM customer_orders_temp
 JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
 WHERE runner_orders_temp.cancellation IS NULL
@@ -528,14 +528,23 @@ Runner 1 takes an average of 15.7 minutes for pick up; runner 2 has an average o
 
 • **SQL Query Solution:**
 ```sql
-SELECT num_pizzas_in_order, ROUND(AVG(time_to_pickup_mins)::NUMERIC, 2) AS avg_pickup_time
-FROM
-	(SELECT customer_orders_temp.order_id, COUNT(customer_orders_temp.pizza_id) AS num_pizzas_in_order,EXTRACT(EPOCH FROM (CAST(runner_orders_temp.pickup_time AS TIMESTAMP) - customer_orders_temp.order_time)) / 60 AS time_to_pickup_mins
-	FROM customer_orders_temp
-	JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
-	WHERE runner_orders_temp.cancellation IS NULL
-	GROUP BY customer_orders_temp.order_id, runner_orders_temp.pickup_time, customer_orders_temp.order_time
-	) sub
+SELECT 
+  num_pizzas_in_order, 
+  ROUND(AVG(time_to_pickup_mins)::NUMERIC, 2) AS avg_pickup_time
+FROM (
+  SELECT 
+    customer_orders_temp.order_id, 
+    COUNT(customer_orders_temp.pizza_id) AS num_pizzas_in_order,
+    EXTRACT(EPOCH FROM (runner_orders_temp.pickup_time - customer_orders_temp.order_time)) / 60 AS time_to_pickup_mins
+  FROM customer_orders_temp
+  JOIN runner_orders_temp 
+    ON customer_orders_temp.order_id = runner_orders_temp.order_id
+  WHERE runner_orders_temp.cancellation IS NULL
+  GROUP BY 
+    customer_orders_temp.order_id, 
+    runner_orders_temp.pickup_time, 
+    customer_orders_temp.order_time
+) sub
 GROUP BY num_pizzas_in_order
 ORDER BY num_pizzas_in_order;
 ```
@@ -557,26 +566,23 @@ Yes, there is a positive relationship between the number of pizzas in an order a
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	menu.product_name AS most_purchased_product,
-    	COUNT (sales.order_date) AS total_purchases
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	menu.product_name
-    ORDER BY
-    	total_purchases DESC
-    LIMIT 1;
+SELECT customer_orders_temp.customer_id, AVG(runner_orders_temp.distance) AS avg_distance_kms
+FROM customer_orders_temp
+JOIN runner_orders_temp ON runner_orders_temp.order_id = customer_orders_temp.order_id
+GROUP BY customer_orders_temp.customer_id
+ORDER BY customer_orders_temp.customer_id;
 ```
 • **Output:**
-
+| customer_id | avg_distance_kms   |
+| ----------- | ------------------ |
+| 101         | 20                 |
+| 102         | 16.733333333333334 |
+| 103         | 23.399999999999995 |
+| 104         | 10                 |
+| 105         | 25                 |
   
 • **Response:**  
-A.
+The average distance travelled for customer 101 is 20km; for 102 it's 16.7km; for 103 it's 23.4km; for 104 it's 10km; and for 105 it's 25km.
 </ul>
 
 ---
@@ -586,25 +592,17 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT DISTINCT ON (sales.customer_id)
-    	sales.customer_id,
-    	menu.product_name AS customer_favorite
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id, menu.product_name
-    ORDER BY
-    	sales.customer_id, COUNT(sales.order_date) DESC;
+SELECT (MAX(duration)-MIN(duration)) AS delivery_maxmin_difference
+FROM runner_orders_temp
+WHERE cancellation IS NULL;
 ```
 • **Output:**  
-
+| delivery_maxmin_difference |
+| -------------------------- |
+| 30                         |
   
 • **Response:**
-A.
+The difference between the longest and shortest delivery times for all orders is 30 minutes.
 </ul>
 
 ---
@@ -614,40 +612,28 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-    	menu.product_name
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    WHERE
-    	sales.order_date = (
-    		SELECT 
-    			s.order_date
-            	FROM 
-                		sales s
-            	JOIN 
-                		members m
-            	ON 
-                		s.customer_id = m.customer_id
-            	WHERE 
-                		s.customer_id = sales.customer_id  -- Outer query's "sales" vs. subquery's "s"
-                		AND s.order_date > m.join_date
-            	ORDER BY 
-               		 s.order_date ASC
-            	LIMIT 1
-        )
-    ORDER BY
-	sales.customer_id;
+SELECT 
+  runner_id, 
+  order_id, 
+  ROUND(((distance / duration::NUMERIC) * 60)::NUMERIC, 2) AS avg_speed_kmh
+FROM runner_orders_temp
+WHERE cancellation IS NULL
+GROUP BY runner_id, order_id, avg_speed_kmh;
 ```
 • **Output:**  
-
+| runner_id | order_id | avg_speed_kmh |
+| --------- | -------- | ------------- |
+| 1         | 1        | 37.50         |
+| 1         | 2        | 44.44         |
+| 1         | 3        | 40.20         |
+| 1         | 10       | 60.00         |
+| 2         | 4        | 35.10         |
+| 2         | 7        | 60.00         |
+| 2         | 8        | 93.60         |
+| 3         | 5        | 40.00         |
   
 • **Response:**
-A.
+For runner 1, average speed ranges from 37.5 km/h to 50km/h; for runner 2, average speed ranges from 35.1km/h to 93.6km/h; and runner 3 has an average speed of 40km/h. Runner 2 data should be further investigated as the speed ranges widely and could be a sign of data irregularity.
 </ul>
 
 ---
@@ -657,37 +643,22 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-    	menu.product_name
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    WHERE
-    	sales.order_date = (
-    		SELECT 
-    			MAX(s.order_date)
-            	FROM 
-                		sales s
-            	JOIN 
-                		members m
-            	ON 
-                		s.customer_id = m.customer_id
-            	WHERE 
-                		s.customer_id = sales.customer_id
-                		AND s.order_date < m.join_date
-        )
-    ORDER BY
-    	customer_id;
+SELECT 
+  runner_id,
+  ROUND(COUNT(CASE WHEN cancellation IS NULL THEN 1 END)::NUMERIC * 100 / COUNT(*)) AS successful_delivery_percentage
+FROM runner_orders_temp
+GROUP BY runner_id
+ORDER BY runner_id;
 ```
 • **Output:**  
-
+| runner_id | successful_delivery_percentage |
+| --------- | ------------------------------ |
+| 1         | 100                            |
+| 2         | 75                             |
+| 3         | 50                             |
   
 • **Response:**
-A.
+Runner 1 has 100% successful delivery percentage; runner 2 has 75% success; and runner 3 has 50%.
 </ul>
 
 ---
