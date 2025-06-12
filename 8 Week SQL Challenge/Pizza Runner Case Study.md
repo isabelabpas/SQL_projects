@@ -231,8 +231,8 @@ These temp tables will be used for the queries answering the case questions.
 
 • **SQL Query Solution:**
 ```sql
-SELECT COUNT(*) AS total_pizzas_ordered
-FROM customer_orders_temp;
+    SELECT COUNT(*) AS total_pizzas_ordered
+    FROM customer_orders_temp;
 ```
 • **Output:**
 
@@ -252,8 +252,8 @@ FROM customer_orders_temp;
 
 • **SQL Query Solution:**
 ```sql
-SELECT COUNT(DISTINCT order_id)
-FROM customer_orders_temp;
+    SELECT COUNT(DISTINCT order_id)
+    FROM customer_orders_temp;
 ```
 • **Output:**  
 | count |
@@ -271,10 +271,12 @@ FROM customer_orders_temp;
 
 • **SQL Query Solution:**
 ```sql
-SELECT runner_id, COUNT(order_id) AS successful_orders
-FROM runner_orders_temp
-WHERE cancellation IS NULL
-GROUP BY runner_id;
+    SELECT 
+    	runner_id,
+        COUNT(order_id) AS successful_orders
+    FROM runner_orders_temp
+    WHERE cancellation IS NULL
+    GROUP BY runner_id;
 ```
 • **Output:**  
 | runner_id | successful_orders |
@@ -294,12 +296,14 @@ GROUP BY runner_id;
 
 • **SQL Query Solution:**
 ```sql
-SELECT pizza_names.pizza_name, COUNT(customer_orders_temp.pizza_id) AS pizzas_delivered
-FROM customer_orders_temp
-JOIN pizza_names ON pizza_names.pizza_id = customer_orders_temp.pizza_id
-JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
-WHERE runner_orders_temp.cancellation IS NULL
-GROUP BY pizza_names.pizza_name;
+    SELECT
+    	pizza_names.pizza_name,
+        COUNT(customer_orders_temp.pizza_id) AS pizzas_delivered
+    FROM customer_orders_temp
+    JOIN pizza_names ON pizza_names.pizza_id = customer_orders_temp.pizza_id
+    JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+    WHERE runner_orders_temp.cancellation IS NULL
+    GROUP BY pizza_names.pizza_name;
 ```
 • **Output:**
 | pizza_name | pizzas_delivered |
@@ -318,12 +322,15 @@ There were 9 meatlovers pizzas delivered, and 3 vegetarian pizzas.
 
 • **SQL Query Solution:**
 ```sql
-SELECT customer_orders_temp.customer_id, pizza_names.pizza_name, COUNT(customer_orders_temp.pizza_id) AS pizzas_ordered
-FROM customer_orders_temp
-JOIN pizza_names ON pizza_names.pizza_id = customer_orders_temp.pizza_id
-JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
-GROUP BY customer_orders_temp.customer_id,pizza_names.pizza_name
-ORDER BY customer_orders_temp.customer_id ASC;
+    SELECT 
+    	customer_orders_temp.customer_id,
+        pizza_names.pizza_name,
+        COUNT(customer_orders_temp.pizza_id) AS pizzas_ordered
+    FROM customer_orders_temp
+    JOIN pizza_names ON pizza_names.pizza_id = customer_orders_temp.pizza_id
+    JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+    GROUP BY customer_orders_temp.customer_id,pizza_names.pizza_name
+    ORDER BY customer_orders_temp.customer_id ASC;
 ```
 • **Output:**  
 | customer_id | pizza_name | pizzas_ordered |
@@ -348,13 +355,15 @@ Customer_id 101 ordered 2 meatlovers pizzas and 1 vegetarian; customer_id 102 or
 
 • **SQL Query Solution:**
 ```sql
-SELECT customer_orders_temp.order_id, COUNT(customer_orders_temp.pizza_id) AS pizza_count
-FROM customer_orders_temp
-JOIN runner_orders_temp ON customer_orders_temp.order_id=runner_orders_temp.order_id
-WHERE runner_orders_temp.cancellation IS NULL
-GROUP BY customer_orders_temp.order_id
-ORDER BY pizza_count DESC
-LIMIT 1;
+    SELECT 
+    	customer_orders_temp.order_id,
+        COUNT(customer_orders_temp.pizza_id) AS pizza_count
+    FROM customer_orders_temp
+    JOIN runner_orders_temp ON customer_orders_temp.order_id=runner_orders_temp.order_id
+    WHERE runner_orders_temp.cancellation IS NULL
+    GROUP BY customer_orders_temp.order_id
+    ORDER BY pizza_count DESC
+    LIMIT 1;
 ```
 • **Output:**  
 | order_id | pizza_count |
@@ -372,19 +381,19 @@ The maximum number if pizzas in a single order was 3 pizzas.
 
 • **SQL Query Solution:**
 ```sql
-SELECT customer_orders_temp.customer_id,
-COUNT(CASE 
-    WHEN customer_orders_temp.exclusions IS NOT NULL 
-      OR customer_orders_temp.extras IS NOT NULL 
-    THEN 1 END) AS changed_pizzas,
-COUNT(CASE 
-    WHEN customer_orders_temp.exclusions IS NULL 
-      AND customer_orders_temp.extras IS NULL 
-    THEN 1 END) AS no_change_pizzas
-FROM customer_orders_temp
-JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
-WHERE runner_orders_temp.cancellation IS NULL
-GROUP BY customer_orders_temp.customer_id;
+    SELECT customer_orders_temp.customer_id,
+    COUNT(CASE 
+        WHEN customer_orders_temp.exclusions IS NOT NULL 
+        OR customer_orders_temp.extras IS NOT NULL 
+        THEN 1 END) AS changed_pizzas,
+    COUNT(CASE 
+        WHEN customer_orders_temp.exclusions IS NULL 
+        AND customer_orders_temp.extras IS NULL 
+        THEN 1 END) AS no_change_pizzas
+    FROM customer_orders_temp
+    JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+    WHERE runner_orders_temp.cancellation IS NULL
+    GROUP BY customer_orders_temp.customer_id;
 ```
 • **Output:**  
 | customer_id | changed_pizzas | no_change_pizzas |
@@ -406,12 +415,14 @@ Customer_id 1 had 0 changed pizzas and 2 unchanged pizzas; 102 had 0 changed piz
 	
 • **SQL Query Solution:**
 ```sql
-SELECT COUNT(*) AS pizzas_with_both
-FROM customer_orders_temp
-JOIN runner_orders_temp ON runner_orders_temp.order_id = customer_orders_temp.order_id                                     
-WHERE runner_orders_temp.cancellation IS NULL
-AND customer_orders_temp.exclusions IS NOT NULL
-AND customer_orders_temp.extras IS NOT NULL;
+    SELECT
+    	COUNT(*) AS pizzas_with_both
+    FROM customer_orders_temp
+    JOIN runner_orders_temp ON runner_orders_temp.order_id = customer_orders_temp.order_id                                     
+    WHERE runner_orders_temp.cancellation IS NULL
+    	AND customer_orders_temp.exclusions IS NOT NULL
+    	AND customer_orders_temp.extras IS NOT NULL;
+
 ```
 • **Output:**  
 | pizzas_with_both |
@@ -429,10 +440,12 @@ Only one delivered pizza had both exclusions and extras.
 	
 • **SQL Query Solution:**
 ```sql
-SELECT EXTRACT(HOUR FROM order_time) AS order_hour, COUNT(pizza_id) AS pizza_volume
-FROM customer_orders_temp
-GROUP BY order_hour
-ORDER BY order_hour;
+    SELECT 
+    	EXTRACT(HOUR FROM order_time) AS order_hour,
+        COUNT(pizza_id) AS pizza_volume
+    FROM customer_orders_temp
+    GROUP BY order_hour
+    ORDER BY order_hour;
 ```
 • **Output:**  
 | order_hour | pizza_volume |
@@ -455,10 +468,12 @@ ORDER BY order_hour;
 
 • **SQL Query Solution:**
 ```sql
-SELECT TO_CHAR(order_time, 'Day') AS weekday, COUNT(order_id) AS order_volume
-FROM customer_orders_temp
-GROUP BY weekday, EXTRACT(DOW FROM order_time)
-ORDER BY EXTRACT(DOW FROM order_time);
+    SELECT 
+    	TO_CHAR(order_time, 'Day') AS weekday, 
+    	COUNT(order_id) AS order_volume
+    FROM customer_orders_temp
+    GROUP BY weekday, EXTRACT(DOW FROM order_time)
+    ORDER BY EXTRACT(DOW FROM order_time);
 ```
 • **Output:**  
 | weekday   | order_volume |
@@ -481,10 +496,12 @@ On Wednesdays, there were 5 orders; on Thursdays, there were 3 orders; on Friday
 
 • **SQL Query Solution:**
 ```sql
-SELECT DATE_TRUNC('week', registration_date - INTERVAL '4 days') + INTERVAL '4 days' AS week_start, COUNT(runner_id) as runners_signup
-FROM runners
-GROUP BY week_start
-ORDER BY week_start;
+    SELECT
+	DATE_TRUNC('week', registration_date - INTERVAL '4 days') + INTERVAL '4 days' AS week_start,
+	COUNT(runner_id) as runners_signup
+    FROM runners
+    GROUP BY week_start
+    ORDER BY week_start;
 ```
 • **Output:**
 | week_start          | runners_signup |
@@ -504,11 +521,13 @@ On week 1, starting 2021-01-01, 2 runners signed up; on week 2, 1 runner signed 
 
 • **SQL Query Solution:**
 ```sql
-SELECT runner_orders_temp.runner_id, AVG(EXTRACT(EPOCH FROM (runner_orders_temp.pickup_time - customer_orders_temp.order_time)) / 60) AS avg_time_to_pickup_mins
-FROM customer_orders_temp
-JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
-WHERE runner_orders_temp.cancellation IS NULL
-GROUP BY runner_orders_temp.runner_id;
+    SELECT 
+    	runner_orders_temp.runner_id, 
+    	AVG(EXTRACT(EPOCH FROM (runner_orders_temp.pickup_time - customer_orders_temp.order_time)) / 60) AS avg_time_to_pickup_mins
+    FROM customer_orders_temp
+    JOIN runner_orders_temp ON customer_orders_temp.order_id = runner_orders_temp.order_id
+    WHERE runner_orders_temp.cancellation IS NULL
+    GROUP BY runner_orders_temp.runner_id;
 ```
 • **Output:**  
 | runner_id | avg_time_to_pickup_mins |
@@ -528,25 +547,25 @@ Runner 1 takes an average of 15.7 minutes for pick up; runner 2 has an average o
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  num_pizzas_in_order, 
-  ROUND(AVG(time_to_pickup_mins)::NUMERIC, 2) AS avg_pickup_time
-FROM (
-  SELECT 
-    customer_orders_temp.order_id, 
-    COUNT(customer_orders_temp.pizza_id) AS num_pizzas_in_order,
-    EXTRACT(EPOCH FROM (runner_orders_temp.pickup_time - customer_orders_temp.order_time)) / 60 AS time_to_pickup_mins
-  FROM customer_orders_temp
-  JOIN runner_orders_temp 
-    ON customer_orders_temp.order_id = runner_orders_temp.order_id
-  WHERE runner_orders_temp.cancellation IS NULL
-  GROUP BY 
-    customer_orders_temp.order_id, 
-    runner_orders_temp.pickup_time, 
-    customer_orders_temp.order_time
-) sub
-GROUP BY num_pizzas_in_order
-ORDER BY num_pizzas_in_order;
+    SELECT 
+      num_pizzas_in_order, 
+      ROUND(AVG(time_to_pickup_mins)::NUMERIC, 2) AS avg_pickup_time
+    FROM (
+      SELECT 
+        customer_orders_temp.order_id, 
+        COUNT(customer_orders_temp.pizza_id) AS num_pizzas_in_order,
+        EXTRACT(EPOCH FROM (runner_orders_temp.pickup_time - customer_orders_temp.order_time)) / 60 AS time_to_pickup_mins
+      FROM customer_orders_temp
+      JOIN runner_orders_temp 
+        ON customer_orders_temp.order_id = runner_orders_temp.order_id
+      WHERE runner_orders_temp.cancellation IS NULL
+      GROUP BY 
+        customer_orders_temp.order_id, 
+        runner_orders_temp.pickup_time, 
+        customer_orders_temp.order_time
+    ) sub
+    GROUP BY num_pizzas_in_order
+    ORDER BY num_pizzas_in_order;
 ```
 • **Output:**  
 | num_pizzas_in_order | avg_pickup_time |
@@ -566,11 +585,11 @@ Yes, there is a positive relationship between the number of pizzas in an order a
 
 • **SQL Query Solution:**
 ```sql
-SELECT customer_orders_temp.customer_id, AVG(runner_orders_temp.distance) AS avg_distance_kms
-FROM customer_orders_temp
-JOIN runner_orders_temp ON runner_orders_temp.order_id = customer_orders_temp.order_id
-GROUP BY customer_orders_temp.customer_id
-ORDER BY customer_orders_temp.customer_id;
+    SELECT customer_orders_temp.customer_id, AVG(runner_orders_temp.distance) AS avg_distance_kms
+    FROM customer_orders_temp
+    JOIN runner_orders_temp ON runner_orders_temp.order_id = customer_orders_temp.order_id
+    GROUP BY customer_orders_temp.customer_id
+    ORDER BY customer_orders_temp.customer_id;
 ```
 • **Output:**
 | customer_id | avg_distance_kms   |
@@ -592,9 +611,9 @@ The average distance travelled for customer 101 is 20km; for 102 it's 16.7km; fo
 
 • **SQL Query Solution:**
 ```sql
-SELECT (MAX(duration)-MIN(duration)) AS delivery_maxmin_difference
-FROM runner_orders_temp
-WHERE cancellation IS NULL;
+    SELECT (MAX(duration)-MIN(duration)) AS delivery_maxmin_difference
+    FROM runner_orders_temp
+    WHERE cancellation IS NULL;
 ```
 • **Output:**  
 | delivery_maxmin_difference |
@@ -612,13 +631,13 @@ The difference between the longest and shortest delivery times for all orders is
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  runner_id, 
-  order_id, 
-  ROUND(((distance / duration::NUMERIC) * 60)::NUMERIC, 2) AS avg_speed_kmh
-FROM runner_orders_temp
-WHERE cancellation IS NULL
-GROUP BY runner_id, order_id, avg_speed_kmh;
+    SELECT 
+      runner_id, 
+      order_id, 
+      ROUND(((distance / duration::NUMERIC) * 60)::NUMERIC, 2) AS avg_speed_kmh
+    FROM runner_orders_temp
+    WHERE cancellation IS NULL
+    GROUP BY runner_id, order_id, avg_speed_kmh;
 ```
 • **Output:**  
 | runner_id | order_id | avg_speed_kmh |
@@ -643,12 +662,12 @@ For runner 1, average speed ranges from 37.5 km/h to 50km/h; for runner 2, avera
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  runner_id,
-  ROUND(COUNT(CASE WHEN cancellation IS NULL THEN 1 END)::NUMERIC * 100 / COUNT(*)) AS successful_delivery_percentage
-FROM runner_orders_temp
-GROUP BY runner_id
-ORDER BY runner_id;
+    SELECT 
+      runner_id,
+      ROUND(COUNT(CASE WHEN cancellation IS NULL THEN 1 END)::NUMERIC * 100 / COUNT(*)) AS successful_delivery_percentage
+    FROM runner_orders_temp
+    GROUP BY runner_id
+    ORDER BY runner_id;
 ```
 • **Output:**  
 | runner_id | successful_delivery_percentage |
@@ -670,17 +689,17 @@ Runner 1 has 100% successful delivery percentage; runner 2 has 75% success; and 
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  pn.pizza_name,
-  pt.topping_name
-FROM pizza_recipes pr
-JOIN pizza_names pn 
-  ON pr.pizza_id = pn.pizza_id
-JOIN unnest(string_to_array(pr.toppings, ',')) AS topping_id_str(topping_id) 
-  ON TRUE
-JOIN pizza_toppings pt 
-  ON pt.topping_id = topping_id_str.topping_id::INT
-ORDER BY pn.pizza_name, pt.topping_id;
+    SELECT 
+      pn.pizza_name,
+      pt.topping_name
+    FROM pizza_recipes pr
+    JOIN pizza_names pn 
+      ON pr.pizza_id = pn.pizza_id
+    JOIN unnest(string_to_array(pr.toppings, ',')) AS topping_id_str(topping_id) 
+      ON TRUE
+    JOIN pizza_toppings pt 
+      ON pt.topping_id = topping_id_str.topping_id::INT
+    ORDER BY pn.pizza_name, pt.topping_id;
 ```
 • **Output:**
 | pizza_name | topping_name |
@@ -711,16 +730,16 @@ For meatlovers pizza the toppings are: bacon, BBQ sauce, beef, cheese, chicken, 
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  pt.topping_name,
-  COUNT(*) AS extra_count
-FROM customer_orders_temp cot
-JOIN LATERAL unnest(string_to_array(cot.extras, ',')) AS extras_str(extras) ON TRUE
-JOIN pizza_toppings pt ON pt.topping_id = extras_str.extras::INT
-WHERE cot.extras IS NOT NULL
-GROUP BY pt.topping_name
-ORDER BY extra_count DESC
-LIMIT 1;
+    SELECT 
+      pt.topping_name,
+      COUNT(*) AS extra_count
+    FROM customer_orders_temp cot
+    JOIN LATERAL unnest(string_to_array(cot.extras, ',')) AS extras_str(extras) ON TRUE
+    JOIN pizza_toppings pt ON pt.topping_id = extras_str.extras::INT
+    WHERE cot.extras IS NOT NULL
+    GROUP BY pt.topping_name
+    ORDER BY extra_count DESC
+    LIMIT 1;
 ```
 • **Output:**  
 | topping_name | extra_count |
@@ -738,16 +757,16 @@ The most commonly added extra was bacon.
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  pt.topping_name,
-  COUNT(*) AS exclusion_count
-FROM customer_orders_temp cot
-JOIN LATERAL unnest(string_to_array(cot.exclusions, ',')) AS exclusions_str(exclusions) ON TRUE
-JOIN pizza_toppings pt ON pt.topping_id = exclusions_str.exclusions::INT
-WHERE cot.exclusions IS NOT NULL
-GROUP BY pt.topping_name
-ORDER BY exclusion_count DESC
-LIMIT 1;
+    SELECT 
+      pt.topping_name,
+      COUNT(*) AS exclusion_count
+    FROM customer_orders_temp cot
+    JOIN LATERAL unnest(string_to_array(cot.exclusions, ',')) AS exclusions_str(exclusions) ON TRUE
+    JOIN pizza_toppings pt ON pt.topping_id = exclusions_str.exclusions::INT
+    WHERE cot.exclusions IS NOT NULL
+    GROUP BY pt.topping_name
+    ORDER BY exclusion_count DESC
+    LIMIT 1;
 ```
 • **Output:**  
 | topping_name | exclusion_count |
@@ -769,33 +788,33 @@ The most common exclusion is cheese.
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  cto.order_id,
-  pn.pizza_name ||
-    COALESCE(' - Exclude ' || excl.exclusions, '') ||
-    COALESCE(' - Extra ' || extr.extras, '') AS order_description
-FROM customer_orders_temp cto
-JOIN pizza_names pn ON cto.pizza_id = pn.pizza_id
-
-LEFT JOIN (
-  SELECT order_id, STRING_AGG(DISTINCT pt.topping_name, ', ') AS exclusions
-  FROM customer_orders_temp
-  JOIN LATERAL unnest(string_to_array(exclusions, ',')) AS e(eid) ON TRUE
-  JOIN pizza_toppings pt ON pt.topping_id = e.eid::INT
-  WHERE exclusions IS NOT NULL
-  GROUP BY order_id
-) excl ON excl.order_id = cto.order_id
-
-LEFT JOIN (
-  SELECT order_id, STRING_AGG(DISTINCT pt.topping_name, ', ') AS extras
-  FROM customer_orders_temp
-  JOIN LATERAL unnest(string_to_array(extras, ',')) AS e(eid) ON TRUE
-  JOIN pizza_toppings pt ON pt.topping_id = e.eid::INT
-  WHERE extras IS NOT NULL
-  GROUP BY order_id
-) extr ON extr.order_id = cto.order_id
-
-ORDER BY order_id;
+    SELECT 
+      cto.order_id,
+      pn.pizza_name ||
+        COALESCE(' - Exclude ' || excl.exclusions, '') ||
+        COALESCE(' - Extra ' || extr.extras, '') AS order_description
+    FROM customer_orders_temp cto
+    JOIN pizza_names pn ON cto.pizza_id = pn.pizza_id
+    
+    LEFT JOIN (
+      SELECT order_id, STRING_AGG(DISTINCT pt.topping_name, ', ') AS exclusions
+      FROM customer_orders_temp
+      JOIN LATERAL unnest(string_to_array(exclusions, ',')) AS e(eid) ON TRUE
+      JOIN pizza_toppings pt ON pt.topping_id = e.eid::INT
+      WHERE exclusions IS NOT NULL
+      GROUP BY order_id
+    ) excl ON excl.order_id = cto.order_id
+    
+    LEFT JOIN (
+      SELECT order_id, STRING_AGG(DISTINCT pt.topping_name, ', ') AS extras
+      FROM customer_orders_temp
+      JOIN LATERAL unnest(string_to_array(extras, ',')) AS e(eid) ON TRUE
+      JOIN pizza_toppings pt ON pt.topping_id = e.eid::INT
+      WHERE extras IS NOT NULL
+      GROUP BY order_id
+    ) extr ON extr.order_id = cto.order_id
+    
+    ORDER BY order_id;
 ```
 • **Output:**
 | order_id | order_description                                               |
@@ -826,50 +845,47 @@ The above output represents a table where, for each order id, a description is d
 
 • **SQL Query Solution:**
 ```sql
-WITH numbered_orders AS (
-  SELECT *,
-         ROW_NUMBER() OVER (PARTITION BY order_id, pizza_id ORDER BY order_time) AS pizza_instance
-  FROM customer_orders_temp
-)
-
-SELECT
-  no.order_id,
-  pn.pizza_name || ': ' ||
-    STRING_AGG(
-      CASE
-        WHEN topping_count = 2 THEN '2x' || pt.topping_name
-        ELSE pt.topping_name
-      END,
-      ', ' ORDER BY pt.topping_name
-    ) AS pizza_ingredients
-FROM numbered_orders no
-JOIN pizza_names pn ON no.pizza_id = pn.pizza_id
-JOIN pizza_recipes pr ON no.pizza_id = pr.pizza_id
-
-JOIN LATERAL (
-  SELECT topping_id, COUNT(*) AS topping_count
-  FROM (
-    SELECT TRIM(tid) AS topping_id
-    FROM UNNEST(string_to_array(pr.toppings, ',')) AS tid
-    WHERE TRIM(tid) NOT IN (
-      SELECT TRIM(ex_id)
-      FROM UNNEST(string_to_array(COALESCE(no.exclusions, ''), ',')) AS ex_id
-      WHERE TRIM(ex_id) <> ''
+    WITH numbered_orders AS (
+      SELECT *,
+             ROW_NUMBER() OVER (PARTITION BY order_id, pizza_id ORDER BY order_time) AS pizza_instance
+      FROM customer_orders_temp
     )
+    
+    SELECT
+      no.order_id,
+      pn.pizza_name || ': ' ||
+        STRING_AGG(
+          CASE
+            WHEN topping_count = 2 THEN '2x' || pt.topping_name
+            ELSE pt.topping_name
+          END,
+          ', ' ORDER BY pt.topping_name
+        ) AS pizza_ingredients
+    FROM numbered_orders no
+    JOIN pizza_names pn ON no.pizza_id = pn.pizza_id
+    JOIN pizza_recipes pr ON no.pizza_id = pr.pizza_id
+    
+    JOIN LATERAL (
+      SELECT topping_id, COUNT(*) AS topping_count
+      FROM (
+        SELECT TRIM(tid) AS topping_id
+        FROM UNNEST(string_to_array(pr.toppings, ',')) AS tid
+        WHERE TRIM(tid) NOT IN (
+          SELECT TRIM(ex_id)
+          FROM UNNEST(string_to_array(COALESCE(no.exclusions, ''), ',')) AS ex_id
+          WHERE TRIM(ex_id) <> ''
+        )
+        UNION ALL
+        SELECT TRIM(extra_id) AS topping_id
+        FROM UNNEST(string_to_array(COALESCE(no.extras, ''), ',')) AS extra_id
+        WHERE TRIM(extra_id) <> ''
+      ) all_toppings
+      GROUP BY topping_id
+    ) topping_data ON TRUE
 
-    UNION ALL
-
-    SELECT TRIM(extra_id) AS topping_id
-    FROM UNNEST(string_to_array(COALESCE(no.extras, ''), ',')) AS extra_id
-    WHERE TRIM(extra_id) <> ''
-  ) all_toppings
-  GROUP BY topping_id
-) topping_data ON TRUE
-
-JOIN pizza_toppings pt ON pt.topping_id = topping_data.topping_id::INT
-
-GROUP BY no.order_id, no.pizza_id, no.pizza_instance, pn.pizza_name
-ORDER BY no.order_id, no.pizza_instance;
+    JOIN pizza_toppings pt ON pt.topping_id = topping_data.topping_id::INT
+    GROUP BY no.order_id, no.pizza_id, no.pizza_instance, pn.pizza_name
+    ORDER BY no.order_id, no.pizza_instance;
 ```
 • **Output:**  
 | order_id | pizza_ingredients                                                                   |
@@ -901,40 +917,40 @@ The requested formatted output was generated.
 
 • **SQL Query Solution:**
 ```sql
-WITH delivered_pizzas AS (
-  SELECT cto.*
-  FROM customer_orders_temp cto
-  JOIN runner_orders_temp rot ON cto.order_id = rot.order_id
-  WHERE rot.cancellation IS NULL
-),
-all_toppings AS (
-  SELECT 
-    dp.order_id,
-    TRIM(tid) AS topping_id
-  FROM delivered_pizzas dp
-  JOIN pizza_recipes pr ON dp.pizza_id = pr.pizza_id
-  JOIN LATERAL unnest(string_to_array(pr.toppings, ',')) AS tid ON TRUE
-  WHERE TRIM(tid) NOT IN (
-    SELECT TRIM(eid)
-    FROM unnest(string_to_array(COALESCE(dp.exclusions, ''), ',')) AS eid
-    WHERE TRIM(eid) <> ''
-  )
-  UNION ALL
-  SELECT 
-    dp.order_id,
-    TRIM(eid) AS topping_id
-  FROM delivered_pizzas dp
-  JOIN LATERAL unnest(string_to_array(COALESCE(dp.extras, ''), ',')) AS eid ON TRUE
-  WHERE TRIM(eid) <> ''
-)
-
-SELECT 
-  pt.topping_name,
-  COUNT(*) AS ingredient_qty
-FROM all_toppings at
-JOIN pizza_toppings pt ON pt.topping_id = at.topping_id::INT
-GROUP BY pt.topping_name
-ORDER BY ingredient_qty DESC;
+    WITH delivered_pizzas AS (
+      SELECT cto.*
+      FROM customer_orders_temp cto
+      JOIN runner_orders_temp rot ON cto.order_id = rot.order_id
+      WHERE rot.cancellation IS NULL
+    ),
+    all_toppings AS (
+      SELECT 
+        dp.order_id,
+        TRIM(tid) AS topping_id
+      FROM delivered_pizzas dp
+      JOIN pizza_recipes pr ON dp.pizza_id = pr.pizza_id
+      JOIN LATERAL unnest(string_to_array(pr.toppings, ',')) AS tid ON TRUE
+      WHERE TRIM(tid) NOT IN (
+        SELECT TRIM(eid)
+        FROM unnest(string_to_array(COALESCE(dp.exclusions, ''), ',')) AS eid
+        WHERE TRIM(eid) <> ''
+      )
+      UNION ALL
+      SELECT 
+        dp.order_id,
+        TRIM(eid) AS topping_id
+      FROM delivered_pizzas dp
+      JOIN LATERAL unnest(string_to_array(COALESCE(dp.extras, ''), ',')) AS eid ON TRUE
+      WHERE TRIM(eid) <> ''
+    )
+    
+    SELECT 
+      pt.topping_name,
+      COUNT(*) AS ingredient_qty
+    FROM all_toppings at
+    JOIN pizza_toppings pt ON pt.topping_id = at.topping_id::INT
+    GROUP BY pt.topping_name
+    ORDER BY ingredient_qty DESC;
 ```
 • **Output:**  
 | topping_name | ingredient_qty |
@@ -965,17 +981,17 @@ The output table represents the requested results, with bacon being the most fre
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  SUM(
-    CASE 
-      WHEN cot.pizza_id = 1 THEN 12
-      WHEN cot.pizza_id = 2 THEN 10
-      ELSE 0
-    END
-  ) AS total_revenue
-FROM customer_orders_temp cot
-JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
-WHERE rot.cancellation IS NULL;
+    SELECT 
+      SUM(
+        CASE 
+          WHEN cot.pizza_id = 1 THEN 12
+          WHEN cot.pizza_id = 2 THEN 10
+          ELSE 0
+        END
+      ) AS total_revenue
+    FROM customer_orders_temp cot
+    JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
+    WHERE rot.cancellation IS NULL;
 ```
 • **Output:**
 | total_revenue |
@@ -994,19 +1010,19 @@ Pizza Runner made $138.
 
 • **SQL Query Solution:**
 ```sql
-SELECT 
-  SUM(
-    CASE 
-      WHEN cot.pizza_id = 1 THEN 12
-      WHEN cot.pizza_id = 2 THEN 10
-      ELSE 0
-    END
-    +
-    COALESCE(array_length(string_to_array(REPLACE(cot.extras, ' ', ''), ','), 1), 0)
-  ) AS total_revenue
-FROM customer_orders_temp cot
-JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
-WHERE rot.cancellation IS NULL;
+    SELECT 
+      SUM(
+        CASE 
+          WHEN cot.pizza_id = 1 THEN 12
+          WHEN cot.pizza_id = 2 THEN 10
+          ELSE 0
+        END
+        +
+        COALESCE(array_length(string_to_array(REPLACE(cot.extras, ' ', ''), ','), 1), 0)
+      ) AS total_revenue
+    FROM customer_orders_temp cot
+    JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
+    WHERE rot.cancellation IS NULL;
 ```
 • **Output:**  
 | total_revenue |
@@ -1024,13 +1040,35 @@ With additional $1 charges for any extras, total revenue is $142.
 
 • **SQL Query Solution:**
 ```sql
-
+    DROP TABLE IF EXISTS ratings;
+    CREATE TABLE ratings (
+      rating_id SERIAL PRIMARY KEY,
+      order_id INTEGER NOT NULL,
+      runner_id INTEGER NOT NULL,
+      rating SMALLINT CHECK (rating BETWEEN 1 AND 5)
+    ); 
+    INSERT INTO ratings (order_id, runner_id, rating)
+    SELECT 
+      rot.order_id,
+      rot.runner_id,
+      FLOOR(1 + RANDOM() * 5)::INT
+    FROM runner_orders_temp rot
+    WHERE rot.cancellation IS NULL;
 ```
 • **Output:**  
-
+| rating_id | order_id | runner_id | rating |
+| --------- | -------- | --------- | ------ |
+| 1         | 1        | 1         | 2      |
+| 2         | 2        | 1         | 1      |
+| 3         | 3        | 1         | 2      |
+| 4         | 4        | 2         | 4      |
+| 5         | 5        | 3         | 2      |
+| 6         | 7        | 2         | 2      |
+| 7         | 8        | 2         | 2      |
+| 8         | 10       | 1         | 2      |
   
 • **Response:**
-A.
+The code generated the requested table with randomly generated ratings for each order.
 </ul>
 
 ---
@@ -1050,13 +1088,46 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    SELECT 
+      cot.customer_id, 
+      cot.order_id, 
+      rot.runner_id, 
+      r.rating,
+      cot.order_time::TIME AS order_time,
+      rot.pickup_time::TIME AS pickup_time,
+      rot.pickup_time - cot.order_time AS time_to_pickup,
+      rot.duration, 
+      ROUND(((rot.distance / rot.duration::NUMERIC) * 60)::NUMERIC, 2) AS avg_speed_kmh,
+      COUNT(cot.pizza_id) AS pizza_amt
+    FROM customer_orders_temp cot
+    JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
+    JOIN ratings r ON cot.order_id = r.order_id
+    WHERE rot.cancellation IS NULL
+    GROUP BY 
+      cot.customer_id, 
+      cot.order_id, 
+      rot.runner_id, 
+      r.rating,
+      cot.order_time, 
+      rot.pickup_time, 
+      rot.duration, 
+      rot.distance
+    ORDER BY customer_id;
 ```
 • **Output:**
-
+| customer_id | order_id | runner_id | rating | order_time | pickup_time | time_to_pickup | duration | avg_speed_kmh | pizza_amt |
+| ----------- | -------- | --------- | ------ | ---------- | ----------- | -------------- | -------- | ------------- | --------- |
+| 101         | 1        | 1         | 3      | 18:05:02   | 18:15:34    | 00:10:32       | 32       | 37.50         | 1         |
+| 101         | 2        | 1         | 5      | 19:00:52   | 19:10:54    | 00:10:02       | 27       | 44.44         | 1         |
+| 102         | 3        | 1         | 5      | 23:51:23   | 00:12:37    | 00:21:14       | 20       | 40.20         | 2         |
+| 102         | 8        | 2         | 2      | 23:54:33   | 00:15:02    | 00:20:29       | 15       | 93.60         | 1         |
+| 103         | 4        | 2         | 3      | 13:23:46   | 13:53:03    | 00:29:17       | 40       | 35.10         | 3         |
+| 104         | 5        | 3         | 3      | 21:00:29   | 21:10:57    | 00:10:28       | 15       | 40.00         | 1         |
+| 104         | 10       | 1         | 4      | 18:34:49   | 18:50:20    | 00:15:31       | 10       | 60.00         | 2         |
+| 105         | 7        | 2         | 3      | 21:20:29   | 21:30:45    | 00:10:16       | 25       | 60.00         | 1         |
   
 • **Response:**  
-A.
+The table generated contains all of the requested information.
 </ul>
 
 ---
@@ -1066,21 +1137,49 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    WITH runner_pay AS (
+      SELECT
+          order_id,
+          SUM(distance) * 0.30 AS pay
+      FROM runner_orders_temp
+      WHERE cancellation IS NULL
+      GROUP BY order_id
+    ),
+    
+    pizza_revenue AS (
+      SELECT
+          order_id,
+          SUM(
+              CASE 
+                  WHEN pizza_id = 1 THEN 12
+                  WHEN pizza_id = 2 THEN 10
+              END
+          ) AS revenue
+      FROM customer_orders_temp
+      WHERE order_id IN (SELECT order_id FROM runner_pay)
+      GROUP BY order_id
+    )
+    
+    SELECT
+        SUM(pr.revenue) - SUM(rp.pay) AS leftover_money
+    FROM pizza_revenue pr
+    JOIN runner_pay rp ON pr.order_id=rp.order_id;
 ```
 • **Output:**  
-
+| leftover_money |
+| -------------- |
+| 94.44          |
   
 • **Response:**
-A.
+Under those circumstances, Pizza Runner would have $94.44 leftover.
 </ul>
 
 
   ---
 ### Business Recommendations
-Based on the conducted queries in response to the requests, there are a few observations that can be done from resulting outputs. For example, Danny's Diner can optimize operations by looking at customer spending patterns and tailoring its rewards program accordingly. Ramen stands out as the most popular item both by purchase frequency as well as preference among customers, making it a key product to promote and enhance brand image. Additionally, it appears that the rewards loyalty program provided by the Diner has the potential to influence customer behavior, especially during the first week of membership when purchases are incentivized by providing double points. This period could be leveraged to further drive customer engagement and encourage higher spending.  
-  
-To maximize the Diner’s profitability, some policies could be brainstormed for future implementation based on these insights. For example, offering bundle promotions on popular combinations like ramen paired with sushi or curry could encourage larger orders while catering to existing preferences. Also, targeted promotions for new members during their first week — such as offering extra points on purchases above a certain threshold — could drive higher initial spending and loyalty. These are just a few simple ideas gathered from the small dataset and resulting outputs that would naturally be expanded and better discussed were the dataset larger and more detailed over time.
+Based on the queries and results from the Pizza Runner case study, several insights emerged. Meatlovers pizza was clearly the most popular, both in total orders and across individual customer preferences. Many customers also made modifications to their pizzas, indicating that offering customizable options is important. Bacon was the most common extra, while cheese was the most frequently excluded topping — insights that could guide menu planning.
+
+Operationally, runner performance varied, with differences in pickup times, average speeds, and delivery success rates. This suggests an opportunity for performance tracking and training. Additionally, a relationship was found between order size and preparation time, which could help better manage delivery expectations.Financially, Pizza Runner made $138 in base revenue and $142 with extras, resulting in $94.44 remaining after runner pay. Implementing a ratings system also allowed for new insights into customer satisfaction. These findings, while based on a small dataset, provide a strong foundation for improving both customer experience and operational efficiency.
 
   ---
 
