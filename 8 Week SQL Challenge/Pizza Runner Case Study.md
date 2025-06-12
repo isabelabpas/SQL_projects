@@ -167,13 +167,13 @@ SELECT
   pizza_id, 
 
   CASE
-    WHEN exclusions IS NULL OR exclusions ILIKE 'null' OR TRIM(exclusions) = '' THEN NULL
-    ELSE exclusions
+    WHEN TRIM(LOWER(exclusions)) = 'null' OR TRIM(exclusions) = '' THEN NULL
+    ELSE TRIM(exclusions)
   END AS exclusions,
 
   CASE
-    WHEN extras IS NULL OR extras ILIKE 'null' OR TRIM(extras) = '' THEN NULL
-    ELSE extras
+    WHEN TRIM(LOWER(extras)) = 'null' OR TRIM(extras) = '' THEN NULL
+    ELSE TRIM(extras)
   END AS extras,
 
   order_time
@@ -670,25 +670,38 @@ Runner 1 has 100% successful delivery percentage; runner 2 has 75% success; and 
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-	SUM(menu.price) AS total_sales
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id
-    ORDER BY
-    	sales.customer_id ASC;
+SELECT 
+  pn.pizza_name,
+  pt.topping_name
+FROM pizza_recipes pr
+JOIN pizza_names pn 
+  ON pr.pizza_id = pn.pizza_id
+JOIN unnest(string_to_array(pr.toppings, ',')) AS topping_id_str(topping_id) 
+  ON TRUE
+JOIN pizza_toppings pt 
+  ON pt.topping_id = topping_id_str.topping_id::INT
+ORDER BY pn.pizza_name, pt.topping_id;
 ```
 • **Output:**
-
+| pizza_name | topping_name |
+| ---------- | ------------ |
+| Meatlovers | Bacon        |
+| Meatlovers | BBQ Sauce    |
+| Meatlovers | Beef         |
+| Meatlovers | Cheese       |
+| Meatlovers | Chicken      |
+| Meatlovers | Mushrooms    |
+| Meatlovers | Pepperoni    |
+| Meatlovers | Salami       |
+| Vegetarian | Cheese       |
+| Vegetarian | Mushrooms    |
+| Vegetarian | Onions       |
+| Vegetarian | Peppers      |
+| Vegetarian | Tomatoes     |
+| Vegetarian | Tomato Sauce |
 
 • **Response:**
-A.
+For meatlovers pizza the toppings are: bacon, BBQ sauce, beef, cheese, chicken, mushrooms, pepperoni, and salami. For vegetarian pizza, ingredients are cheese, mushrooms, onions, peppers, tomatoes, and tomato sauce.
 </ul>
 
 ---
@@ -698,20 +711,24 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	customer_id, COUNT (DISTINCT order_date) as total_visits
-    FROM
-    	sales
-    GROUP BY
-    	customer_id
-    ORDER BY
-    	customer_id ASC;
+SELECT 
+  pt.topping_name,
+  COUNT(*) AS extra_count
+FROM customer_orders_temp cot
+JOIN LATERAL unnest(string_to_array(cot.extras, ',')) AS extras_str(extras) ON TRUE
+JOIN pizza_toppings pt ON pt.topping_id = extras_str.extras::INT
+WHERE cot.extras IS NOT NULL
+GROUP BY pt.topping_name
+ORDER BY extra_count DESC
+LIMIT 1;
 ```
 • **Output:**  
-
+| topping_name | extra_count |
+| ------------ | ----------- |
+| Bacon        | 4           |
   
 • **Response:**
-A.
+The most commonly added extra was bacon.
 </ul>
 
 ---
@@ -721,34 +738,24 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-        sales.customer_id, 
-        menu.product_name AS first_purchase
-    FROM
-        sales
-    JOIN
-        menu
-    ON
-        sales.product_id = menu.product_id
-    WHERE
-        sales.order_date = (
-            SELECT
-                MIN(order_date)
-            FROM
-                sales s
-            WHERE
-                s.customer_id = sales.customer_id
-        )
-    GROUP BY
-        sales.customer_id, menu.product_name
-    ORDER BY
-        sales.customer_id;
+SELECT 
+  pt.topping_name,
+  COUNT(*) AS exclusion_count
+FROM customer_orders_temp cot
+JOIN LATERAL unnest(string_to_array(cot.exclusions, ',')) AS exclusions_str(exclusions) ON TRUE
+JOIN pizza_toppings pt ON pt.topping_id = exclusions_str.exclusions::INT
+WHERE cot.exclusions IS NOT NULL
+GROUP BY pt.topping_name
+ORDER BY exclusion_count DESC
+LIMIT 1;
 ```
 • **Output:**  
-
+| topping_name | exclusion_count |
+| ------------ | --------------- |
+| Cheese       | 4               |
   
 • **Response:**
-A.
+The most common exclusion is cheese.
 </ul>
 
 ---
@@ -762,26 +769,54 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	menu.product_name AS most_purchased_product,
-    	COUNT (sales.order_date) AS total_purchases
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	menu.product_name
-    ORDER BY
-    	total_purchases DESC
-    LIMIT 1;
+SELECT 
+  cto.order_id,
+  pn.pizza_name ||
+    COALESCE(' - Exclude ' || excl.exclusions, '') ||
+    COALESCE(' - Extra ' || extr.extras, '') AS order_description
+FROM customer_orders_temp cto
+JOIN pizza_names pn ON cto.pizza_id = pn.pizza_id
+
+LEFT JOIN (
+  SELECT order_id, STRING_AGG(DISTINCT pt.topping_name, ', ') AS exclusions
+  FROM customer_orders_temp
+  JOIN LATERAL unnest(string_to_array(exclusions, ',')) AS e(eid) ON TRUE
+  JOIN pizza_toppings pt ON pt.topping_id = e.eid::INT
+  WHERE exclusions IS NOT NULL
+  GROUP BY order_id
+) excl ON excl.order_id = cto.order_id
+
+LEFT JOIN (
+  SELECT order_id, STRING_AGG(DISTINCT pt.topping_name, ', ') AS extras
+  FROM customer_orders_temp
+  JOIN LATERAL unnest(string_to_array(extras, ',')) AS e(eid) ON TRUE
+  JOIN pizza_toppings pt ON pt.topping_id = e.eid::INT
+  WHERE extras IS NOT NULL
+  GROUP BY order_id
+) extr ON extr.order_id = cto.order_id
+
+ORDER BY order_id;
 ```
 • **Output:**
-
+| order_id | order_description                                               |
+| -------- | --------------------------------------------------------------- |
+| 1        | Meatlovers                                                      |
+| 2        | Meatlovers                                                      |
+| 3        | Vegetarian                                                      |
+| 3        | Meatlovers                                                      |
+| 4        | Meatlovers - Exclude Cheese                                     |
+| 4        | Meatlovers - Exclude Cheese                                     |
+| 4        | Vegetarian - Exclude Cheese                                     |
+| 5        | Meatlovers - Extra Bacon                                        |
+| 6        | Vegetarian                                                      |
+| 7        | Vegetarian - Extra Bacon                                        |
+| 8        | Meatlovers                                                      |
+| 9        | Meatlovers - Exclude Cheese - Extra Bacon, Chicken              |
+| 10       | Meatlovers - Exclude BBQ Sauce, Mushrooms - Extra Bacon, Cheese |
+| 10       | Meatlovers - Exclude BBQ Sauce, Mushrooms - Extra Bacon, Cheese |
   
 • **Response:**  
-A.
+The above output represents a table where, for each order id, a description is displayed with the pizza type name plus any exclusions or extras for each.
 </ul>
 
 ---
@@ -791,25 +826,72 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT DISTINCT ON (sales.customer_id)
-    	sales.customer_id,
-    	menu.product_name AS customer_favorite
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id, menu.product_name
-    ORDER BY
-    	sales.customer_id, COUNT(sales.order_date) DESC;
+WITH numbered_orders AS (
+  SELECT *,
+         ROW_NUMBER() OVER (PARTITION BY order_id, pizza_id ORDER BY order_time) AS pizza_instance
+  FROM customer_orders_temp
+)
+
+SELECT
+  no.order_id,
+  pn.pizza_name || ': ' ||
+    STRING_AGG(
+      CASE
+        WHEN topping_count = 2 THEN '2x' || pt.topping_name
+        ELSE pt.topping_name
+      END,
+      ', ' ORDER BY pt.topping_name
+    ) AS pizza_ingredients
+FROM numbered_orders no
+JOIN pizza_names pn ON no.pizza_id = pn.pizza_id
+JOIN pizza_recipes pr ON no.pizza_id = pr.pizza_id
+
+JOIN LATERAL (
+  SELECT topping_id, COUNT(*) AS topping_count
+  FROM (
+    SELECT TRIM(tid) AS topping_id
+    FROM UNNEST(string_to_array(pr.toppings, ',')) AS tid
+    WHERE TRIM(tid) NOT IN (
+      SELECT TRIM(ex_id)
+      FROM UNNEST(string_to_array(COALESCE(no.exclusions, ''), ',')) AS ex_id
+      WHERE TRIM(ex_id) <> ''
+    )
+
+    UNION ALL
+
+    SELECT TRIM(extra_id) AS topping_id
+    FROM UNNEST(string_to_array(COALESCE(no.extras, ''), ',')) AS extra_id
+    WHERE TRIM(extra_id) <> ''
+  ) all_toppings
+  GROUP BY topping_id
+) topping_data ON TRUE
+
+JOIN pizza_toppings pt ON pt.topping_id = topping_data.topping_id::INT
+
+GROUP BY no.order_id, no.pizza_id, no.pizza_instance, pn.pizza_name
+ORDER BY no.order_id, no.pizza_instance;
 ```
 • **Output:**  
+| order_id | pizza_ingredients                                                                   |
+| -------- | ----------------------------------------------------------------------------------- |
+| 1        | Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami   |
+| 2        | Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami   |
+| 3        | Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami   |
+| 3        | Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes              |
+| 4        | Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami           |
+| 4        | Vegetarian: Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                      |
+| 4        | Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami           |
+| 5        | Meatlovers: BBQ Sauce, 2xBacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami |
+| 6        | Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes              |
+| 7        | Vegetarian: Bacon, Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes       |
+| 8        | Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami   |
+| 9        | Meatlovers: BBQ Sauce, 2xBacon, Beef, 2xChicken, Mushrooms, Pepperoni, Salami       |
+| 10       | Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami   |
+| 10       | Meatlovers: 2xBacon, Beef, 2xCheese, Chicken, Pepperoni, Salami                     |
 
   
 • **Response:**
-A.
+The requested formatted output was generated.
 </ul>
 
 ---
@@ -819,40 +901,59 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-    	menu.product_name
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    WHERE
-    	sales.order_date = (
-    		SELECT 
-    			s.order_date
-            	FROM 
-                		sales s
-            	JOIN 
-                		members m
-            	ON 
-                		s.customer_id = m.customer_id
-            	WHERE 
-                		s.customer_id = sales.customer_id  -- Outer query's "sales" vs. subquery's "s"
-                		AND s.order_date > m.join_date
-            	ORDER BY 
-               		 s.order_date ASC
-            	LIMIT 1
-        )
-    ORDER BY
-	sales.customer_id;
+WITH delivered_pizzas AS (
+  SELECT cto.*
+  FROM customer_orders_temp cto
+  JOIN runner_orders_temp rot ON cto.order_id = rot.order_id
+  WHERE rot.cancellation IS NULL
+),
+all_toppings AS (
+  SELECT 
+    dp.order_id,
+    TRIM(tid) AS topping_id
+  FROM delivered_pizzas dp
+  JOIN pizza_recipes pr ON dp.pizza_id = pr.pizza_id
+  JOIN LATERAL unnest(string_to_array(pr.toppings, ',')) AS tid ON TRUE
+  WHERE TRIM(tid) NOT IN (
+    SELECT TRIM(eid)
+    FROM unnest(string_to_array(COALESCE(dp.exclusions, ''), ',')) AS eid
+    WHERE TRIM(eid) <> ''
+  )
+  UNION ALL
+  SELECT 
+    dp.order_id,
+    TRIM(eid) AS topping_id
+  FROM delivered_pizzas dp
+  JOIN LATERAL unnest(string_to_array(COALESCE(dp.extras, ''), ',')) AS eid ON TRUE
+  WHERE TRIM(eid) <> ''
+)
+
+SELECT 
+  pt.topping_name,
+  COUNT(*) AS ingredient_qty
+FROM all_toppings at
+JOIN pizza_toppings pt ON pt.topping_id = at.topping_id::INT
+GROUP BY pt.topping_name
+ORDER BY ingredient_qty DESC;
 ```
 • **Output:**  
-
+| topping_name | ingredient_qty |
+| ------------ | -------------- |
+| Bacon        | 12             |
+| Mushrooms    | 11             |
+| Cheese       | 10             |
+| Pepperoni    | 9              |
+| Chicken      | 9              |
+| Salami       | 9              |
+| Beef         | 9              |
+| BBQ Sauce    | 8              |
+| Tomato Sauce | 3              |
+| Onions       | 3              |
+| Tomatoes     | 3              |
+| Peppers      | 3              |
   
 • **Response:**
-A.
+The output table represents the requested results, with bacon being the most frequent ingredient in delivered pizzas.
 </ul>
 
 ---
@@ -864,25 +965,25 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	sales.customer_id,
-	SUM(menu.price) AS total_sales
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id
-    ORDER BY
-    	sales.customer_id ASC;
+SELECT 
+  SUM(
+    CASE 
+      WHEN cot.pizza_id = 1 THEN 12
+      WHEN cot.pizza_id = 2 THEN 10
+      ELSE 0
+    END
+  ) AS total_revenue
+FROM customer_orders_temp cot
+JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
+WHERE rot.cancellation IS NULL;
 ```
 • **Output:**
-
+| total_revenue |
+| ------------- |
+| 138           |
 
 • **Response:**
-A.
+Pizza Runner made $138.
 </ul>
 
 ---
@@ -893,20 +994,27 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	customer_id, COUNT (DISTINCT order_date) as total_visits
-    FROM
-    	sales
-    GROUP BY
-    	customer_id
-    ORDER BY
-    	customer_id ASC;
+SELECT 
+  SUM(
+    CASE 
+      WHEN cot.pizza_id = 1 THEN 12
+      WHEN cot.pizza_id = 2 THEN 10
+      ELSE 0
+    END
+    +
+    COALESCE(array_length(string_to_array(REPLACE(cot.extras, ' ', ''), ','), 1), 0)
+  ) AS total_revenue
+FROM customer_orders_temp cot
+JOIN runner_orders_temp rot ON cot.order_id = rot.order_id
+WHERE rot.cancellation IS NULL;
 ```
 • **Output:**  
-
+| total_revenue |
+| ------------- |
+| 142           |
   
 • **Response:**
-A.
+With additional $1 charges for any extras, total revenue is $142.
 </ul>
 
 ---
@@ -916,28 +1024,7 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-        sales.customer_id, 
-        menu.product_name AS first_purchase
-    FROM
-        sales
-    JOIN
-        menu
-    ON
-        sales.product_id = menu.product_id
-    WHERE
-        sales.order_date = (
-            SELECT
-                MIN(order_date)
-            FROM
-                sales s
-            WHERE
-                s.customer_id = sales.customer_id
-        )
-    GROUP BY
-        sales.customer_id, menu.product_name
-    ORDER BY
-        sales.customer_id;
+
 ```
 • **Output:**  
 
@@ -963,20 +1050,7 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT
-    	menu.product_name AS most_purchased_product,
-    	COUNT (sales.order_date) AS total_purchases
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	menu.product_name
-    ORDER BY
-    	total_purchases DESC
-    LIMIT 1;
+
 ```
 • **Output:**
 
@@ -992,19 +1066,7 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-    SELECT DISTINCT ON (sales.customer_id)
-    	sales.customer_id,
-    	menu.product_name AS customer_favorite
-    FROM
-    	sales
-    JOIN
-    	menu
-    ON
-    	sales.product_id = menu.product_id
-    GROUP BY
-    	sales.customer_id, menu.product_name
-    ORDER BY
-    	sales.customer_id, COUNT(sales.order_date) DESC;
+
 ```
 • **Output:**  
 
