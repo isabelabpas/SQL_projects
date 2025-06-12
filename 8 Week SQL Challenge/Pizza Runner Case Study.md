@@ -152,13 +152,13 @@ VALUES
 For each question, I have included a SQL Query Solution, its output, and a brief response to the information requested.  
   
 **➡️ Data Cleaning and Manipulation ⬅️**  
-Prior to beginning the analysis and answering any questions, there are two tables that need some work done! Below it can be seen that the first table that needs to be cleaned is the *customer_orders* table:
+Prior to beginning the analysis and answering any questions, there are two tables that need some work done. Below is the *customer_orders* table which requires some cleaning:
 
 <p align="center" width="100%">
     <img width="100%" src="https://github.com/user-attachments/assets/893f9af0-d1d9-4184-8f3e-36a09030dddf">
 </p>
   
-From the screenshot, we can see that there are blank spaces as well as null values in both the *exclusions* and the *extras* columns, which needs to be standardized. For that, I created a temporary table from the original *customer_orders* table and replaced any blank or non-standard values in the two aforementioned columns with NULL:
+From the screenshot, we can see that there are blank spaces as well as null values in both the *exclusions* and the *extras* columns, requiring standardization. For that, I created a temporary table from the original *customer_orders* table and replaced any blank or non-standard values in the two aforementioned columns with NULL:
 ```sql
 CREATE TEMP TABLE customer_orders_temp AS
 SELECT 
