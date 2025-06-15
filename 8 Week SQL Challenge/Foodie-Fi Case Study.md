@@ -122,13 +122,45 @@ For each question, I have included a SQL Query Solution, its output, and a brief
 
 • **SQL Query Solution:**
 ```sql
-
+    SELECT sub.customer_id, sub.plan_id, sub.start_date, plans.plan_name, plans.price
+    FROM subscriptions AS sub
+    JOIN plans ON plans.plan_id=sub.plan_id
+    WHERE sub.customer_id IN (1,2,3,4,5,6,7,8)
+    ORDER BY sub.customer_id ASC;
 ```
 • **Output:**
-
+| customer_id | plan_id | start_date | plan_name     | price  |
+| ----------- | ------- | ---------- | ------------- | ------ |
+| 1           | 1       | 2020-08-08 | basic monthly | 9.90   |
+| 1           | 0       | 2020-08-01 | trial         | 0.00   |
+| 2           | 0       | 2020-09-20 | trial         | 0.00   |
+| 2           | 3       | 2020-09-27 | pro annual    | 199.00 |
+| 3           | 1       | 2020-01-20 | basic monthly | 9.90   |
+| 3           | 0       | 2020-01-13 | trial         | 0.00   |
+| 4           | 0       | 2020-01-17 | trial         | 0.00   |
+| 4           | 4       | 2020-04-21 | churn         |        |
+| 4           | 1       | 2020-01-24 | basic monthly | 9.90   |
+| 5           | 0       | 2020-08-03 | trial         | 0.00   |
+| 5           | 1       | 2020-08-10 | basic monthly | 9.90   |
+| 6           | 1       | 2020-12-30 | basic monthly | 9.90   |
+| 6           | 0       | 2020-12-23 | trial         | 0.00   |
+| 6           | 4       | 2021-02-26 | churn         |        |
+| 7           | 1       | 2020-02-12 | basic monthly | 9.90   |
+| 7           | 2       | 2020-05-22 | pro monthly   | 19.90  |
+| 7           | 0       | 2020-02-05 | trial         | 0.00   |
+| 8           | 2       | 2020-08-03 | pro monthly   | 19.90  |
+| 8           | 1       | 2020-06-18 | basic monthly | 9.90   |
+| 8           | 0       | 2020-06-11 | trial         | 0.00   |
 
 • **Response:**
-A.
+Customer 1 started with a trial and upgraded to the basic monthly plan after one week.
+Customer 2 began with a trial and upgraded directly to the pro annual plan after seven days.
+Customer 3 followed a similar path to customer 1, starting with a trial and moving to the basic monthly plan.
+Customer 4 signed up for the basic monthly plan after the trial but eventually churned approximately three months later.
+Customer 5 transitioned from trial to basic monthly after one week.
+Customer 6 also moved from trial to the basic monthly plan, but churned after about two months.
+Customer 7 started with a trial, chose the basic monthly plan, and later upgraded to the pro monthly plan after three months.
+Customer 8 began with a trial, selected the basic monthly plan, and upgraded to the pro monthly plan about two months later.
 </ul>
 
 ---
@@ -140,13 +172,16 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    SELECT COUNT(DISTINCT customer_id) AS total_customers
+    FROM subscriptions;
 ```
 • **Output:**
-
+| total_customers |
+| --------------- |
+| 1000            |
 
 • **Response:**
-A.
+Foodie-Fi has had 1000 customers.
 </ul>
 
 ---
@@ -156,10 +191,29 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    SELECT 
+      DATE_TRUNC('month', start_date) AS month_start,
+      COUNT(*) AS amt_trials
+    FROM subscriptions
+    WHERE plan_id = 0
+    GROUP BY month_start
+    ORDER BY month_start;
 ```
 • **Output:**
-
+| month_start            | amt_trials |
+| ---------------------- | ---------- |
+| 2020-01-01 00:00:00+00 | 88         |
+| 2020-02-01 00:00:00+00 | 68         |
+| 2020-03-01 00:00:00+00 | 94         |
+| 2020-04-01 00:00:00+00 | 81         |
+| 2020-05-01 00:00:00+00 | 88         |
+| 2020-06-01 00:00:00+00 | 79         |
+| 2020-07-01 00:00:00+00 | 89         |
+| 2020-08-01 00:00:00+00 | 88         |
+| 2020-09-01 00:00:00+00 | 87         |
+| 2020-10-01 00:00:00+00 | 79         |
+| 2020-11-01 00:00:00+00 | 75         |
+| 2020-12-01 00:00:00+00 | 84         |
 
 • **Response:**
 A.
@@ -172,13 +226,25 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    SELECT 
+      p.plan_name,
+      COUNT(*) AS plan_count
+    FROM subscriptions s
+    JOIN plans p ON s.plan_id = p.plan_id
+    WHERE s.start_date >= '2021-01-01'
+    GROUP BY p.plan_name
+    ORDER BY plan_count DESC;
 ```
 • **Output:**
-
+| plan_name     | plan_count |
+| ------------- | ---------- |
+| churn         | 71         |
+| pro annual    | 63         |
+| pro monthly   | 60         |
+| basic monthly | 8          |
 
 • **Response:**
-A.
+After 2020, there are 71 churns, 63 plans started as pro plans billed annually, 60 pro plans billed monthly, and 8 basic plans billed monthly.
 </ul>
 
 ---
@@ -188,13 +254,18 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    SELECT  
+      COUNT(DISTINCT CASE WHEN plan_id = 4 THEN customer_id END) AS churn_ct,
+      ROUND(100 * COUNT(DISTINCT CASE WHEN plan_id = 4 THEN customer_id END)/COUNT(DISTINCT customer_id), 1) AS churn_pct
+    FROM subscriptions;
 ```
 • **Output:**
-
+| churn_ct | churn_pct |
+| -------- | --------- |
+| 307      | 30.0      |
 
 • **Response:**
-A.
+There are 307 customers who have churned, corresponding to 30.0%.
 </ul>
 
 ---
