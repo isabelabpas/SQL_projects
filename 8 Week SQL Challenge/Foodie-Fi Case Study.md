@@ -275,13 +275,42 @@ There are 307 customers who have churned, corresponding to 30.0%.
 
 • **SQL Query Solution:**
 ```sql
-
+    WITH ordered_plans AS (
+      SELECT 
+        customer_id, 
+        plan_id, 
+        start_date,
+        ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date) AS plan_order
+      FROM subscriptions
+    ),
+    trial_churned AS (
+      SELECT customer_id
+      FROM (
+        SELECT 
+          customer_id,
+          plan_id,
+          plan_order,
+          LEAD(plan_id) OVER (PARTITION BY customer_id ORDER BY plan_order) AS next_plan
+        FROM ordered_plans
+      ) sub
+      WHERE plan_id = 0 AND next_plan = 4
+    )
+    
+    SELECT 
+      COUNT(*) AS churned_after_trial,
+      ROUND(
+        100.0 * COUNT(*) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions),
+        0
+      ) AS percent_churned
+    FROM trial_churned;
 ```
 • **Output:**
-
+| churned_after_trial | percent_churned |
+| ------------------- | --------------- |
+| 92                  | 9               |
 
 • **Response:**
-A.
+92 customers churned right after their free trial, which is equivalent to 9% of the total customers.
 </ul>
 
 ---
@@ -291,13 +320,31 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    WITH first_plans AS (
+      SELECT
+        customer_id,
+        plan_id,
+        start_date,
+        ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date) AS rn
+      FROM subscriptions
+    ),
+    post_trial_customers AS (
+      SELECT customer_id
+      FROM first_plans
+      WHERE rn = 2 AND plan_id IN (1, 2, 3)
+    )
+    SELECT 
+      COUNT(*) AS num_customers_after_trial,
+      ROUND(100.0 * COUNT(*) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 0) AS pct_customers
+    FROM post_trial_customers;
 ```
 • **Output:**
-
+| num_customers_after_trial | pct_customers |
+| ------------------------- | ------------- |
+| 908                       | 91            |
 
 • **Response:**
-A.
+908 customers signed up for a plan after initial free trial, corresponding to 91% of all customers.
 </ul>
 
 ---
@@ -307,13 +354,36 @@ A.
 
 • **SQL Query Solution:**
 ```sql
-
+    WITH latest_plans AS (
+      SELECT customer_id, plan_id
+      FROM (
+        SELECT *,
+          ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date DESC) AS rn
+        FROM subscriptions
+        WHERE start_date <= '2020-12-31'
+      ) sub
+      WHERE rn = 1
+    )
+    SELECT
+      p.plan_name,
+      COUNT(lp.customer_id) AS num_customers,
+      ROUND(100.0 * COUNT(lp.customer_id) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 0) AS pct_customers
+    FROM latest_plans lp
+    JOIN plans p ON lp.plan_id = p.plan_id
+    GROUP BY p.plan_name
+    ORDER BY num_customers DESC;
 ```
 • **Output:**
-
+| plan_name     | num_customers | pct_customers |
+| ------------- | ------------- | ------------- |
+| pro monthly   | 326           | 33            |
+| churn         | 236           | 24            |
+| basic monthly | 224           | 22            |
+| pro annual    | 195           | 20            |
+| trial         | 19            | 2             |
 
 • **Response:**
-A.
+The table displays the number of customer and equivalent percentage for all plans at 2020-12-31.
 </ul>
 
 ---
